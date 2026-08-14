@@ -1,5 +1,7 @@
 # DASH — Deepseek Agentic Service Harness (terminal edition)
 
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 oh-my-pi 的 TUI 使用逻辑 + DeepSeek Harness 的完整 agent 内核，跑在终端里。
 像 [dsh-cc-tui](https://github.com/ccch1mneyyy/dsh-cc-tui) 一样通过官方
 `dsh` CLI 以 profile 方式启动，但按键与界面遵循 oh-my-pi 的习惯。
@@ -12,10 +14,17 @@ UI 是零依赖的 raw-ANSI 终端渲染（无 React/Ink），整个插件只有
 
 ## 安装
 
+前置：官方 `dsh` CLI（`npm install -g @deepseek-ai/dsh`）。
+
 ```sh
+git clone https://github.com/songqikong/dash.git
+cd dash
 sh install.sh          # 创建 ~/.dsh/profiles/dash + ~/.local/bin/dash
 dash                   # 启动（等价于 dsh --profile dash）
 ```
+
+本地开发：改完 `index.js` 等源码后重跑 `sh install.sh` 生效（会复制进
+`~/.dsh/profiles/dash/node_modules/dash-tui/`）。
 
 ## 按键（oh-my-pi 习惯）
 
