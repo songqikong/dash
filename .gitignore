@@ -1,0 +1,4 @@
+# Local test artifacts
+*.sqlite
+*.log
+.DS_Store

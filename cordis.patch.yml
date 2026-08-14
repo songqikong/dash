@@ -1,0 +1,7 @@
+# dash-tui bundle patch: the interactive terminal front door over the dsh-base
+# layer. Applied as one insert over the empty profile root; the user's profile
+# cordis.patch.yml may override this row's config by id afterwards.
+- insert:
+    - id: dash-tui
+      name: 'dash-tui'
+      config: {}

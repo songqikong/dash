@@ -1,0 +1,16 @@
+{
+  "name": "dash-tui",
+  "version": "0.1.0",
+  "description": "DASH — Deepseek Agentic Service Harness. oh-my-pi style TUI on the DSH agent kernel, run in the terminal via `dsh --profile dash`.",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": ">=22.19"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
