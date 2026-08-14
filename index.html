@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DASH — Deepseek Agentic Service Harness</title>
+<style>
+  :root {
+    --bg: #0b0e13; --panel: #0e1218; --panel2: #10141b; --border: #1c2430;
+    --fg: #c9d4e3; --dim: #566273; --accent: #7ee787; --blue: #7aa2f7;
+    --purple: #d2a8ff; --yellow: #e3b341; --red: #ff7b72; --cyan: #56d4dd;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.7;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; }
+  header { border-bottom: 1px solid var(--border); padding-bottom: 28px; margin-bottom: 36px; }
+  .logo { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 15px; color: var(--accent); letter-spacing: .5px; }
+  h1 { margin: 10px 0 6px; font-size: 40px; color: #e6edf3; letter-spacing: 1px; }
+  .sub { color: var(--dim); font-size: 16px; }
+  .badges { margin-top: 14px; }
+  .badges img { margin-right: 6px; }
+  h2 { color: var(--accent); font-size: 20px; margin: 44px 0 14px; border-left: 3px solid var(--accent); padding-left: 10px; }
+  p, li { color: var(--fg); }
+  a { color: var(--cyan); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .term {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px;
+    overflow: hidden; margin: 20px 0;
+  }
+  .term-bar { background: var(--panel2); padding: 8px 14px; color: var(--dim); font-size: 12px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; }
+  .term-bar .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .term pre { margin: 0; padding: 16px 18px; overflow-x: auto; color: #dbe6f2; }
+  .g { color: var(--accent); } .b { color: var(--blue); } .p { color: var(--purple); }
+  .y { color: var(--yellow); } .d { color: var(--dim); } .r { color: var(--red); } .c { color: var(--cyan); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 18px 0; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; }
+  .card h3 { margin: 0 0 8px; font-size: 15px; color: var(--accent); }
+  .card p { margin: 0; color: var(--dim); font-size: 13.5px; }
+  code, pre { font-family: ui-monospace, Menlo, Consolas, monospace; }
+  code { background: var(--panel2); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; font-size: 13px; color: var(--yellow); }
+  pre.install { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; overflow-x: auto; }
+  .excl { background: var(--panel); border: 1px solid #3a2a1a; border-radius: 8px; padding: 14px 18px; color: var(--dim); font-size: 13.5px; }
+  footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); color: var(--dim); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="logo">DASH — Deepseek Agentic Service Harness</div>
+  <h1>DASH</h1>
+  <div class="sub">oh-my-pi 的 TUI 使用逻辑 · DeepSeek Harness 的完整 agent 内核 · 跑在终端里</div>
+  <div class="badges">
+    <img alt="license" src="https://img.shields.io/badge/license-MIT-blue">
+    <img alt="kernel" src="https://img.shields.io/badge/kernel-DSH-7ee787">
+    <img alt="lang" src="https://img.shields.io/badge/language-JavaScript-f7df1e">
+  </div>
+</header>
+
+<div class="term">
+  <div class="term-bar"><span class="dot" style="background:#ff5f56"></span><span class="dot" style="background:#ffbd2e"></span><span class="dot" style="background:#27c93f"></span><span style="margin-left:8px">dash — 120x36</span></div>
+<pre><span class="g"> DASH</span><span class="d">  Deepseek Agentic Service Harness  </span><span class="p">opencode-go/deepseek-v4-flash</span><span class="d"> · 重要的会话标题</span>   <span class="g">● idle</span>
+<span class="y">DASH v0.2.0 — oh-my-pi usage · DSH kernel · opencode-go/deepseek-v4-flash · /help</span>
+
+<span class="b">┃ 写一个 markdown 表格和代码块，说明 DASH 的架构。</span>
+<span class="g">● DASH 由两层构成：</span>
+<span class="g">  ## 内核</span>
+<span class="g">  <span class="y">ctx.agents.create()</span> · <span class="y">agent.followup()</span> · <span class="y">session/event</span> 事件流 — 全部官方 DSH API</span>
+<span class="d">  | 层 | 内容 |</span>
+<span class="d">  | --- | --- |</span>
+<span class="d">  | 使用逻辑 | oh-my-pi 键位/编辑器/转录/状态栏/命令 |</span>
+<span class="d">  | 内核 | DSH agent loop · llm · sessions · tools · skills |</span>
+<span class="d">  · 02:26:02 · 3s · opencode-go/deepseek-v4-flash</span>
+<span class="d">  in 287 · out 42</span>
+
+<span class="g">❯ </span>Reply with exactly the word <span class="y">DASHY</span> and nothing else.
+<span class="d">▏<span class="g">████</span><span class="p">██</span><span class="b">████</span>░░░░░░░░░░░░░░░</span><span class="d">▕ ctx 329/1.0M 0.0%</span><span class="d"> ▁█ 17400 tok/s</span><span class="d"> · 缓存 98%</span>
+<span class="g">✓ 0 tools · 4s</span><span class="d">  in 287 · out 42</span><span class="d">  /help</span><span class="d">  git:main · tmp/dashb5 · 重要…</span></pre>
+</div>
+
+<h2>为什么是 DASH</h2>
+<p>像 <a href="https://github.com/can1357/oh-my-pi">oh-my-pi</a> 一样全键盘操作的终端 TUI，
+但内核完全是 <a href="https://www.deepseek.com/">DeepSeek Harness</a>：
+真实 DSH Agent（工具/技能/持久化/compaction）、官方 provider 注册表与模型路由、
+<code>session/event</code> 流式渲染——不重新发明轮子，只换一副 omp 的手感。</p>
+
+<h2>功能一览</h2>
+<div class="grid">
+  <div class="card"><h3>⌨ 键位</h3><p>oh-my-pi 全量 action 表，<code>~/.dash/keybindings.yml</code> 重映射，<code>/hotkeys</code> 查看</p></div>
+  <div class="card"><h3>✏ 编辑器</h3><p>多行（kitty 协议 Shift+Enter）、词/行编辑、kill-ring、undo、Ctrl+G 外部编辑器、历史检索、命令菜单、<code>@</code> 文件补全</p></div>
+  <div class="card"><h3>📜 转录</h3><p>Markdown 渲染（表格/代码高亮）、thinking 流式、工具卡片、置顶提示词栏、未读 pill、双击 Esc 时间回溯</p></div>
+  <div class="card"><h3>📊 状态栏</h3><p>上下文分段进度条、TPS sparkline、缓存命中率、⏵ 模型自述、回合统计、git/cwd/标题</p></div>
+  <div class="card"><h3>🧠 模型</h3><p>角色体系（default/smol/plan/task + effort）、三栏选择器、Ctrl+P 循环、Alt+P 临时</p></div>
+  <div class="card"><h3>💬 会话</h3><p><code>/resume</code> 选择器（恢复+重放+删除）、<code>/rename</code>、<code>/new</code>、持久化到 <code>~/.dsh/sessions</code></p></div>
+  <div class="card"><h3>🛠 进阶</h3><p>Agent Hub（Alt+A）、TTSR 流规则、advisor 第二模型、回合 bell、<code>/skills</code>、<code>/init</code> 注入 AGENTS.md</p></div>
+  <div class="card"><h3>🎨 主题</h3><p>dark/light 双色板、<code>/theme</code>、<code>/settings</code> 面板、配置持久化</p></div>
+</div>
+
+<h2>安装</h2>
+<pre class="install"># 前置：官方 dsh CLI
+npm install -g @deepseek-ai/dsh
+
+git clone https://github.com/songqikong/dash.git
+cd dash
+sh install.sh          # 创建 ~/.dsh/profiles/dash + ~/.local/bin/dash
+dash                   # 启动（等价于 dsh --profile dash）</pre>
+
+<h2>文档</h2>
+<ul>
+  <li><a href="https://github.com/songqikong/dash/blob/main/README.md">README.md</a> — 使用与配置</li>
+  <li><a href="https://github.com/songqikong/dash/blob/main/FEATURES.md">FEATURES.md</a> — 69 项 oh-my-pi 功能对照清单（含排除项说明）</li>
+  <li><a href="https://github.com/songqikong/dash/tree/main/tests">tests/</a> — pty 端到端测试（真实模型往返）</li>
+</ul>
+
+<h2>明确排除</h2>
+<div class="excl">
+依赖 oh-my-pi 私有原生栈、DSH 内核不提供的项不在实现范围内：
+60+ provider 生态、LSP/DAP 工具、/collab 中继、STT/语音、图像协议、原生 in-process ripgrep/brush。
+逐一说明见 <a href="https://github.com/songqikong/dash/blob/main/FEATURES.md">FEATURES.md</a>。
+</div>
+
+<footer>DASH — Deepseek Agentic Service Harness · MIT License · Powered by <span class="c">DeepSeek Harness</span></footer>
+</div>
+</body>
+</html>
