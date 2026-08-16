@@ -2806,7 +2806,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   function maxScroll(): number {
     const draftLines = wrapDraft(W - 4)
     const maxShown = Math.min(draftLines.length, 4)
-    const vis = Math.max(3, H - 4 - maxShown)
+    const vis = Math.max(3, H - 2 - maxShown)
     return Math.max(0, allLines().length - vis)
   }
 
@@ -3036,16 +3036,12 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
 
   function buildFrame(): string[] {
     const frame: string[] = []
-    const modelTxt = displayModel.provider ? displayModel.provider + '/' + displayModel.model : '—'
-    const stateDot = busy ? C.yellow + '● streaming' + C.reset : C.green + '● idle' + C.reset
-    const titleTxt = sessionTitle ? C.dim + ' · ' + truncate(sessionTitle, 32) + C.reset : ''
-    frame.push(C.bright + ' DASH' + C.reset + C.dim + '  Deepseek Agentic Service Harness  ' + C.reset + C.purple + modelTxt + C.reset + titleTxt + '   ' + stateDot)
 
     // editor block (up to 4 wrapped lines)
     const draftLines = wrapDraft(W - 4)
     const maxShown = Math.min(draftLines.length, 4)
     const shown = draftLines.slice(-maxShown)
-    const vis = Math.max(3, H - 4 - maxShown)
+    const vis = Math.max(3, H - 2 - maxShown)
 
     let content: string[] = []
     let unread = 0
