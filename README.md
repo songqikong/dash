@@ -59,12 +59,13 @@ while browsing history.
 
 ### 04 · Status-bar dashboard
 
-omp-style status line: `⬢ model · ◉ thinking effort · in/out tokens · TPS
-sparkline · cache hit % · ⏱ session elapsed`, plus an activity row (spinner +
-⛭ tool name / ⏵ model self-reported work / ✓ turn stats), queue, status hints,
-git branch / cwd / session title. The status rows sit above the input box on a
-theme background band; everything informational lives above the prompt — the
-very bottom row of the screen belongs to the input only.
+omp-style status lines: **A** (above the input) shows `⬢ model · preset · ◉
+thinking effort · in/out tokens`, **C** (below the input, the bottom row) shows
+activity (spinner + ⛭ tool name / ⏵ model self-reported work / ✓ turn stats),
+queue, status hints, and `/help`. Both rows sit on a theme background band with
+balanced left/right segments — the right side carries the TPS sparkline, cache
+hit %, session elapsed, the restored **context-window indicator** (usage/total
++ a 10-cell bar), and git branch / cwd / session title.
 
 ### 05 · Model role system
 
@@ -109,11 +110,12 @@ delivery, turn bell, quiet boot, autoResume) — all applied live and written to
 ### 08½ · Splash welcome screen
 
 Before the session starts you get an omp-style welcome screen: a sharp-cornered
-single column box (no rounded elements, everything centered), `Welcome back!`
-+ a bold DASH wordmark (ANSI Shadow art) + model/provider, then Tips, the
-current agent preset, and recent sessions (read live from `~/.dsh/sessions`
-with relative times). It yields to the transcript once the first message is
-sent.
+single column box (no rounded elements, everything centered) with a bold DASH
+wordmark (ANSI Shadow art) + model/provider, then a Tips block (all hints live
+inside the box), the current agent preset (**highlighted** — it also appears on
+status line A above the input), and recent sessions (read live from
+`~/.dsh/sessions` with relative times). It yields to the transcript once the
+first message is sent.
 
 ### 09 · Agent Hub
 

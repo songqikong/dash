@@ -2500,9 +2500,20 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   ]
   const ansiRe = /\x1b\[[0-9;]*m/g
   const plainW = (s: string) => strWidth(s.replace(ansiRe, ''))
-  /** Paint a status row with the theme background, re-applying it after every inner reset. */
-  const bgLine = (s: string, width: number): string =>
-    C.bg + s.split(C.reset).join(C.reset + C.bg) + ' '.repeat(Math.max(0, width - plainW(s))) + C.reset
+  /** Paint a status row with the theme background, re-applying it after every inner reset.
+   *  `right` (optional) is right-aligned, balancing the row instead of a pure left block. */
+  const bgLine = (s: string, width: number, right = ''): string => {
+    const gap = Math.max(2, width - plainW(s) - plainW(right))
+    return C.bg + (s + ' '.repeat(gap) + right).split(C.reset).join(C.reset + C.bg) + C.reset
+  }
+
+  /** Display name of the active agent preset (splash + status line A). */
+  function presetDisplayName(): string {
+    const cur = presetId || 'standard'
+    const p = presets.find((x) => x.id === cur)
+    if (lang === 'zh') return p ? (p.name || p.id) : cur
+    return { standard: 'Standard', code: 'PTC', minimal: 'Minimal', cordis: 'Cordis' }[cur] || cur
+  }
 
   function splashLines(): string[] {
     const lines: string[] = []
@@ -2516,15 +2527,8 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     }
     const row = (content: string) => D + '│' + C.reset + center(content) + D + '│' + C.reset
     const divider = row(D + '─'.repeat(inner) + C.reset)
-    const presetName = () => {
-      const cur = presetId || 'standard'
-      const p = presets.find((x) => x.id === cur)
-      if (lang === 'zh') return p ? (p.name || p.id) : cur
-      return { standard: 'Standard', code: 'PTC', minimal: 'Minimal', cordis: 'Cordis' }[cur] || cur
-    }
-    // single centered column: welcome + DASH wordmark + model · tips · preset · sessions
+    // single centered column: DASH wordmark + model · tips · preset · sessions
     lines.push(D + '┌───' + 'DASH v0.2.0' + '─'.repeat(Math.max(0, inner - 'DASH v0.2.0'.length - 3)) + '┐' + C.reset)
-    lines.push(row(C.bright + 'Welcome back!' + C.reset))
     lines.push(row(''))
     for (const lg of DASH_LOGO) lines.push(row(C.yellow + lg + C.reset))
     lines.push(row(''))
@@ -2534,10 +2538,10 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     lines.push(row(''))
     lines.push(divider)
     lines.push(row(D + 'Tips' + C.reset))
-    for (const t of [tr('splash.tip1'), tr('splash.tip2'), tr('splash.tip3')]) lines.push(row(D + t + C.reset))
+    for (const t of [tr('splash.tip1'), tr('splash.tip2'), tr('splash.tip3'), tr('splash.tip')]) lines.push(row(D + t + C.reset))
     lines.push(divider)
     lines.push(row(D + 'Agent preset' + C.reset))
-    lines.push(row(D + presetName() + C.dim + ' (' + (presetId || 'standard') + ')' + C.reset))
+    lines.push(row(C.green + presetDisplayName() + C.dim + ' (' + (presetId || 'standard') + ')' + C.reset))
     lines.push(divider)
     lines.push(row(D + 'Recent sessions' + C.reset))
     if (!welcomeSessions) {
@@ -2552,7 +2556,6 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     }
     lines.push(row(''))
     lines.push(D + '└' + '─'.repeat(Math.max(1, inner)) + '┘' + C.reset)
-    lines.push(D + ' ' + center(tr('splash.tip')) + C.reset)
     return lines
   }
 
@@ -3180,7 +3183,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     for (let i = 0; i < vis; i++) frame.push(content[i] || '')
 
     // status line A: model · effort · tokens · tps · cache · elapsed
-    // (omp-style segments; the bottom of the screen belongs to the input only)
+    // (omp-style segments; the input sits below it, status line C above the bottom edge)
     const effortTxt = (selection.current && selection.current.reasoningEffort) || ''
     const cachePct = cacheReadTotal + usage.in ? Math.round((cacheReadTotal / (cacheReadTotal + usage.in)) * 100) : 0
     const tpsTxt = tpsNow ? C.dim + ' ' + sparkline() + ' ' + tpsNow + ' tok/s' + C.reset : ''
@@ -3188,11 +3191,25 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     const effortTxtFull = effortTxt ? C.dim + ' · ◉ ' + effortTxt + C.reset : ''
     const elapsed = sessionStartAt ? Math.max(0, Math.floor((Date.now() - sessionStartAt) / 1000)) : 0
     const elapsedTxt = C.dim + ' · ⏱ ' + Math.floor(elapsed / 60) + ':' + String(elapsed % 60).padStart(2, '0') + C.reset
+    const presetTxt = W >= 100 ? C.dim + ' · ' + C.reset + C.cyan + truncate(presetDisplayName(), 14) + C.reset : ''
     frame.push(bgLine(C.bright + '⬢ ' + C.reset + C.purple + (displayModel.provider ? displayModel.provider + '/' + displayModel.model : '—') + C.reset +
-      effortTxtFull + C.dim + ' · in ' + fmtTokens(usage.in) + ' · out ' + fmtTokens(usage.out) + C.reset +
-      tpsTxt + cacheTxt + elapsedTxt, W))
+      presetTxt + effortTxtFull + C.dim + ' · in ' + fmtTokens(usage.in) + ' · out ' + fmtTokens(usage.out) + C.reset,
+      W, tpsTxt + cacheTxt + elapsedTxt))
 
-    // status line B: activity + queue + status + git/cwd/title
+    // prompt / draft — sits between status line A and status line C
+    const prompt = exitConfirm ? C.yellow + ' exit DASH? [y/n]' + C.reset : ''
+    if (prompt) {
+      frame.push(prompt)
+      for (let i = 1; i < maxShown; i++) frame.push('')
+    } else {
+      shown.forEach((ln, i) => {
+        const prefix = i === 0 ? C.green + '❯ ' + C.reset : C.dim + '  ' + C.reset
+        frame.push(prefix + ln.text + C.reset)
+      })
+      for (let i = shown.length; i < maxShown; i++) frame.push('')
+    }
+
+    // status line C (bottom row): activity + queue + status + ctx + git/cwd/title
     let act = ''
     if (busy) {
       const spin = spinner[tick % spinner.length]
@@ -3215,6 +3232,14 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     const queueTxt = queue.length ? C.yellow + 'queue ' + queue.length + C.reset + ' ' : ''
     const unreadTxt = unread > 0 ? C.yellow + '↓ ' + unread + tr('status.unread') + C.reset + ' ' : ''
     const statusTxt = statusText ? (statusColor || C.green) + statusText + C.reset : ''
+    // context-window indicator (restored): usage/total + 10-cell bar
+    let ctxTxt = ''
+    if (contextWindow > 0) {
+      const used = usage.in + usage.out
+      const pct = Math.min(1, used / contextWindow)
+      const filled = Math.round(pct * 10)
+      ctxTxt = C.dim + ' ctx ' + C.reset + fmtTokens(used) + C.dim + '/' + fmtTokens(contextWindow) + C.reset + ' ' + C.purple + '█'.repeat(filled) + '░'.repeat(10 - filled) + C.reset
+    }
     let rightTxt = ''
     const cwdShort = (config.cwd || process.cwd()).split('/').slice(-2).join('/')
     if (W >= 100) {
@@ -3222,23 +3247,10 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       if (gitBranch) bits.push('git:' + gitBranch)
       bits.push(cwdShort)
       if (sessionTitle) bits.push(truncate(sessionTitle, 16))
-      rightTxt = C.dim + '  ' + bits.join(' · ') + C.reset
+      rightTxt = C.dim + (ctxTxt ? ' · ' : '') + bits.join(' · ') + C.reset
     }
     const hintTxt = C.dim + '  /help' + C.reset
-    frame.push(bgLine(act + '  ' + queueTxt + unreadTxt + statusTxt + hintTxt + rightTxt, W))
-
-    // prompt / draft — the very bottom belongs to the input only
-    const prompt = exitConfirm ? C.yellow + ' exit DASH? [y/n]' + C.reset : ''
-    if (prompt) {
-      frame.push(prompt)
-      frame.push('')
-    } else {
-      shown.forEach((ln, i) => {
-        const prefix = i === 0 ? C.green + '❯ ' + C.reset : C.dim + '  ' + C.reset
-        frame.push(prefix + ln.text + C.reset)
-      })
-      for (let i = shown.length; i < maxShown; i++) frame.push('')
-    }
+    frame.push(bgLine(act + '  ' + queueTxt + unreadTxt + statusTxt + hintTxt, W, ctxTxt + rightTxt))
     return frame
   }
 
@@ -3266,16 +3278,16 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     }
     for (let i = frame.length; i < prevFrame.length; i++) outBuf.push('\x1b[' + (i + 1) + ';1H\x1b[2K')
     prevFrame = frame
-    // editor cursor
+    // editor cursor (input block now sits one row higher, above status line C)
     const draftLines = wrapDraft(W - 4)
     const maxShown = Math.min(draftLines.length, 4)
     const shown = draftLines.slice(-maxShown)
-    let cursorRow = H - 1 - maxShown
+    let cursorRow = H - 2 - maxShown
     let cursorCol = 3
     for (let i = 0; i < shown.length; i++) {
       const ln = shown[i]
       if (draft.cursor >= ln.start && draft.cursor <= ln.end) {
-        cursorRow = H - 1 - (maxShown - 1 - i)
+        cursorRow = H - 2 - (maxShown - 1 - i)
         cursorCol = (i === 0 ? 3 : 2) + strWidth(ln.text.slice(0, draft.cursor - ln.start))
         break
       }
