@@ -2394,12 +2394,14 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     })()
   }
 
-  // heavy block DASH wordmark: sharp angles, no rounded glyphs
+  // heavy block DASH wordmark (ANSI Shadow style)
   const DASH_LOGO = [
-    '█▀▀▀▀▀▀█  ▄▀▀▀▀▀▀▄  █▀▀▀▀▀▀▄  █▀▀▀▀▀▀█',
-    '█      █  █      █  █      █  █      █',
-    '█      █  █      █  █      █  █      █',
-    '█▄▄▄▄▄▄█  ▀▄▄▄▄▄▄▀  █▄▄▄▄▄▄▀  █▄▄▄▄▄▄█',
+    '  ██████╗   █████╗ ███████╗██╗  ██╗',
+    '  ██╔══██╗ ██╔══██╗██╔════╝██║  ██║',
+    ' ██║  ██║ ███████║███████╗███████║',
+    '██║  ██║ ██╔══██║╚════██║██╔══██║',
+    '██████╔╝██║  ██║███████║██║  ██║',
+    '╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝',
   ]
   const ansiRe = /\x1b\[[0-9;]*m/g
   const plainW = (s: string) => strWidth(s.replace(ansiRe, ''))
