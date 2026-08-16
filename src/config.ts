@@ -45,6 +45,20 @@ export const CONFIG_PATH: string = path.join(DASH_HOME, 'config.yml')
 export const KEYBINDINGS_PATH: string = path.join(DASH_HOME, 'keybindings.yml')
 export const RULES_PATH: string = path.join(DASH_HOME, 'rules.yml')
 
+/** Official DSH user settings document ($DSH_HOME/settings.yaml, hot-reloaded by the host). */
+export const DSH_SETTINGS_PATH: string = path.join(process.env.DSH_HOME || path.join(os.homedir(), '.dsh'), 'settings.yaml')
+
+export function loadDshSettings(): any {
+  return loadYaml(DSH_SETTINGS_PATH)
+}
+
+export function saveDshSettings(root: any): void {
+  try {
+    fs.mkdirSync(path.dirname(DSH_SETTINGS_PATH), { recursive: true })
+    fs.writeFileSync(DSH_SETTINGS_PATH, yaml.dump(root, { noRefs: true }))
+  } catch (e) { /* ignore */ }
+}
+
 export function loadConfig(): any {
   ensureDir()
   return loadYaml(CONFIG_PATH)

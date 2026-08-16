@@ -14,7 +14,7 @@ import { discoverPresets, mountPreset } from '@deepseek-ai/dsh-agent-presets'
 import { KeyParser, buildKeyMap, keyId, kittyPushRequest, DEFAULT_ACTION_KEYS, ACTIONS } from './keys.js'
 import { Draft } from './editor.js'
 import { renderMarkdown } from './markdown.js'
-import { loadKeybindingsConfig, loadConfig, saveConfig, getCfg, setCfg, loadRules, DASH_HOME } from './config.js'
+import { loadKeybindingsConfig, loadConfig, saveConfig, getCfg, setCfg, loadRules, DASH_HOME, loadDshSettings, saveDshSettings } from './config.js'
 import { execFile } from 'node:child_process'
 import { createRequire } from 'node:module'
 import fs from 'node:fs'
@@ -250,7 +250,6 @@ interface Colors {
   cyan: string
   italic: string
   bold: string
-  bg: string
 }
 
 export const name = 'dash-tui'
@@ -264,6 +263,10 @@ const STRINGS: Record<string, { en: string; zh: string }> = {
   'status.cache': { en: 'cache', zh: '缓存' },
   'status.unread': { en: ' new (PgDn)', zh: ' 新消息 (PgDn)' },
   'sticky.prompt': { en: 'current prompt: ', zh: '当前提示词: ' },
+  'todo.title': { en: 'todo', zh: '待办' },
+  'trace.title': { en: 'event trace', zh: '事件轨迹' },
+  'trace.events': { en: 'events', zh: '个事件' },
+  'status.generating': { en: 'generating…', zh: '生成中…' },
   'boot.mountFailed': { en: 'mount failed', zh: '装载失败' },
   'ctx.compacting': { en: '🧹 compacting context…', zh: '🧹 上下文压缩中…' },
   'ctx.compacted': { en: '🧹 compaction complete', zh: '🧹 压缩完成' },
@@ -350,8 +353,25 @@ const STRINGS: Record<string, { en: string; zh: string }> = {
   'settings.followup.desc': { en: 'How queued messages are delivered while streaming (all=merge into one)', zh: '流式期间排队消息的投递方式（all=合并为一条）' },
   'settings.bell.label': { en: 'Turn-end bell', zh: '回合结束铃' },
   'settings.bell.desc': { en: 'Ring the terminal bell when a turn ends', zh: '回合结束时终端响铃提醒' },
-  'settings.quiet.label': { en: 'Quiet startup', zh: '静默启动' },
-  'settings.quiet.desc': { en: 'Skip the banner on startup', zh: '启动时不显示横幅提示' },
+  'settings.busyEnter.label': { en: 'Enter while busy', zh: '流式中回车' },
+  'settings.busyEnter.desc': { en: 'queue: follow-ups queue up · steer: send immediately, interrupting the current turn', zh: 'queue: 排队为后续消息 · steer: 立即发送并打断当前回合' },
+  'settings.permission.label': { en: 'Permission preset', zh: '权限预设' },
+  'settings.permission.desc': { en: 'Default sandbox/approval preset for new sessions (read-only · workspace-write · danger-full-access)', zh: '新会话默认沙箱/审批预设（只读 · 工作区写入 · 完全访问）' },
+  'settings.shellTimeout.label': { en: 'Shell timeout', zh: '命令超时' },
+  'settings.shellTimeout.desc': { en: 'Shell tool command timeout in milliseconds', zh: 'shell 工具命令超时（毫秒）' },
+  'settings.shellOutput.label': { en: 'Shell output cap', zh: '命令输出上限' },
+  'settings.shellOutput.desc': { en: 'Max output bytes per stream for the shell tool', zh: 'shell 工具单次输出字节上限' },
+  'settings.parallel.label': { en: 'Parallel tool calls', zh: '并行工具调用' },
+  'settings.parallel.desc': { en: 'Max parallel tool calls in the agent loop', zh: 'agent 循环最大并行工具数' },
+  'settings.webSearchUses.label': { en: 'Web search uses', zh: '联网搜索次数' },
+  'settings.webSearchUses.desc': { en: 'Max searches per web-search request', zh: '单次联网搜索请求的最大搜索次数' },
+  'settings.group.general': { en: 'General', zh: '通用' },
+  'settings.group.plugins': { en: 'Plugins', zh: '插件' },
+  'settings.group.providers': { en: 'Providers', zh: '提供商' },
+  'settings.defaultModel.label': { en: 'Default model', zh: '默认模型' },
+  'settings.defaultModel.desc': { en: 'Current provider/model selection — Enter opens the model picker', zh: '当前提供商/模型选择 — 回车打开模型选择器' },
+  'settings.defaultModel.hint': { en: 'choose a model', zh: '选择模型' },
+  'settings.provider.desc': { en: 'Provider route from llm-pi-ai (settings.yaml) — Enter opens the model picker', zh: 'llm-pi-ai 提供商路由（settings.yaml）— 回车打开模型选择器' },
   'settings.autoResume.label': { en: 'Auto-resume', zh: '自动恢复' },
   'settings.autoResume.desc': { en: 'Resume the most recent dash-* session on startup', zh: '启动时自动恢复最近的 dash-* 会话' },
   'settings.preset.label': { en: 'Session mode', zh: '会话模式' },
@@ -435,17 +455,35 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     }
     return cur
   }
+  /** Truncate by visible width while preserving ANSI SGR sequences verbatim. */
+  function truncateAnsi(s: string, width: number): string {
+    let out = ''
+    let w = 0
+    let i = 0
+    while (i < s.length) {
+      if (s[i] === '\x1b') {
+        const m = s.slice(i).match(/^\x1b\[[0-9;]*m/)
+        if (m) { out += m[0]; i += m[0].length; continue }
+      }
+      const cw = charWidth(s[i])
+      if (w + cw > width) return out + '…'
+      out += s[i]
+      w += cw
+      i++
+    }
+    return out
+  }
   function padRight(s: string, width: number): string {
     const w = strWidth(s)
     return w >= width ? s : s + ' '.repeat(width - w)
   }
 
   // ── theme ────────────────────────────────────────────────────────────────
-  const THEMES: Record<string, { name: string; fg: number; dim: number; accent: number; green: number; blue: number; yellow: number; amber: number; red: number; purple: number; cyan: number; bg: number }> = {
-    dark: { name: 'dark', fg: 254, dim: 245, accent: 78, green: 121, blue: 117, yellow: 222, amber: 229, red: 203, purple: 141, cyan: 81, bg: 236 },
-    light: { name: 'light', fg: 237, dim: 244, accent: 29, green: 28, blue: 25, yellow: 130, amber: 94, red: 124, purple: 91, cyan: 30, bg: 253 },
+  const THEMES: Record<string, { name: string; fg: number; dim: number; accent: number; green: number; blue: number; yellow: number; amber: number; red: number; purple: number; cyan: number }> = {
+    dark: { name: 'dark', fg: 254, dim: 245, accent: 78, green: 121, blue: 117, yellow: 222, amber: 229, red: 203, purple: 141, cyan: 81 },
+    light: { name: 'light', fg: 237, dim: 244, accent: 29, green: 28, blue: 25, yellow: 130, amber: 94, red: 124, purple: 91, cyan: 30 },
   }
-  let C: Colors = { reset: '', dim: '', green: '', bright: '', blue: '', yellow: '', amber: '', red: '', purple: '', cyan: '', italic: '', bold: '', bg: '' }
+  let C: Colors = { reset: '', dim: '', green: '', bright: '', blue: '', yellow: '', amber: '', red: '', purple: '', cyan: '', italic: '', bold: '' }
   const fg256 = (n: number) => '\x1b[38;5;' + n + 'm'
   function applyTheme(): void {
     const t = THEMES[cfg.theme && cfg.theme.light ? 'light' : 'dark'] || THEMES.dark
@@ -461,7 +499,6 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     C.cyan = fg256(t.cyan)
     C.italic = '\x1b[3m'
     C.bold = '\x1b[1m'
-    C.bg = '\x1b[48;5;' + t.bg + 'm'
     if (cfg.colorBlindMode) { const g = C.green; C.green = C.blue; C.blue = g }
     try { dirty = true } catch (e) { /* dirty declared later */ }
   }
@@ -499,10 +536,13 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   let lastUserText = ''
   let lastTurnFailed = false
   let turnTools = 0
+  let sendAt = 0 // when the last followup was sent — stuck-loading guard
   let turnStartedAt = 0
   let sessionStartAt = 0
   let sessionTitle = ''
+  let todos: Array<{ content: string; status: 'pending' | 'in_progress' | 'completed' }> = []
   let rewind: RewindState | null = null
+  let trace: { ev: SessionEvent[]; scroll: number } | null = null
   let lastEscAt = 0
   let activity: Activity | null = null // {phase, label, startedAt}
 
@@ -602,7 +642,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       return
     }
     bootTries = 0
-    const quiet = getCfg(cfg, 'startup.quiet', false) === true
+    busyEnterMode = String(getCfg(dshSettings(), 'ui-conversation.busyEnter', 'queue') || 'queue')
     // agent preset for this session (standard / code / minimal / cordis)
     await ensurePresets()
     const preset = await currentPreset()
@@ -640,7 +680,6 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         } catch (e) { /* ignore */ }
       }
       refreshGitBranch()
-      if (!quiet) rows.push({ kind: 'notice', text: 'DASH v0.2.0 — resumed ' + resumeId + ' · /help' })
       dirty = true
       return
     }
@@ -681,7 +720,6 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     displayModel = { provider, model }
     usage = { in: 0, out: 0 }
     refreshGitBranch()
-    if (!quiet) rows.push({ kind: 'notice', text: 'DASH v0.2.0 — oh-my-pi usage · DSH kernel · ' + provider + '/' + model + ' · /help' })
     dirty = true
   }
 
@@ -703,6 +741,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     switch (event.type) {
       case 'turn/start':
         busy = true
+        sendAt = 0
         streaming = null
         turnTools = 0
         turnStartedAt = Date.now()
@@ -798,6 +837,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       case 'turn/end': {
         const reason = event.data.reason
         busy = false
+        sendAt = 0
         streaming = null
         // flush residual TPS sample
         if (tpsBuf.chars > 0) {
@@ -841,6 +881,10 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         break
       case 'session/title':
         if (event.data.title) sessionTitle = event.data.title
+        dirty = true
+        break
+      case 'todo/write':
+        todos = event.data.todos || []
         dirty = true
         break
       default:
@@ -903,6 +947,16 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (text.charAt(0) === '/') { runCommand(text); return }
     if (!agent) { setStatus('✗ agent not ready', C.red); return }
     if (busy) {
+      if (busyEnterMode === 'steer' && agent) {
+        // ui-conversation.busyEnter = steer: send immediately, interrupting the current turn
+        try {
+          agent.steer(createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'plugin', plugin: 'dash-tui' } }))
+          draft.text = ''
+          draft.cursor = 0
+          setStatus('steered', C.green)
+          return
+        } catch (e) { /* fall through to queue */ }
+      }
       queue.push(text)
       draft.text = ''
       draft.cursor = 0
@@ -914,7 +968,16 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     draft.text = ''
     draft.cursor = 0
     draft.undoStack = []
-    agent.followup(createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'user' } }))
+    try {
+      agent.followup(createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'user' } }))
+    } catch (e) {
+      setStatus('✗ send failed: ' + emsg(e), C.red)
+      return
+    }
+    // show the loading indicator immediately, before the first session event
+    busy = true
+    sendAt = Date.now()
+    activity = { phase: 'thinking', startedAt: Date.now() }
     setStatus('')
     dirty = true
   }
@@ -1230,6 +1293,8 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     const old = handle
     handle = null
     agent = null
+    busy = false
+    activity = null
     rows = []
     scroll = 0
     queue = []
@@ -1479,6 +1544,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (presetPick) { presetKeys(ev); return }
     if (fileMenu) { fileMenuKeys(ev); return }
     if (rewind) { rewindKeys(ev); return }
+    if (trace) { traceKeys(ev); return }
     if (histSearch) { histKeys(ev); return }
     if (cmdMenu) { menuKeys(ev); return }
     scrollBy(delta * 3)
@@ -1519,6 +1585,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (presetPick) { presetKeys(ev); return }
     if (fileMenu) { fileMenuKeys(ev); return }
     if (rewind) { rewindKeys(ev); return }
+    if (trace) { traceKeys(ev); return }
     if (histSearch) { histKeys(ev); return }
     if (cmdMenu) { menuKeys(ev); return }
     if (exitConfirm) {
@@ -1905,6 +1972,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   async function resumeSession(id: string): Promise<void> {
     if (busy) { setStatus('busy — stop first', C.yellow); return }
     resumePick = null
+    activity = null
     const old = handle
     handle = null
     agent = null
@@ -2049,14 +2117,46 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
 
   // ── settings panel (/settings, omp-style SettingsList) ──────────────────
   let settingsPick: SettingsPickState | null = null
+  let dshSettingsCache: any = null
+  let busyEnterMode = 'queue'
+
+  /** Cached view of the official $DSH_HOME/settings.yaml (cleared on panel open). */
+  function dshSettings(): any {
+    if (!dshSettingsCache) dshSettingsCache = loadDshSettings()
+    return dshSettingsCache
+  }
+
+  function saveDsh(ds: any): void {
+    saveDshSettings(ds)
+    dshSettingsCache = null
+  }
 
   function openSettings(): void {
+    dshSettingsCache = null
     settingsPick = { tab: 0, query: '', idx: 0, sectionFocus: false, listRows: 10 }
     settingsFirstItem()
     dirty = true
   }
 
   const BOOL_VALS = ['off', 'on']
+
+  /** Providers from the official llm-pi-ai namespace in $DSH_HOME/settings.yaml. */
+  function dshProviders(): Array<{ id: string; name: string; baseURL: string; models: number }> {
+    const ds = dshSettings()
+    const provs = getCfg(ds, 'llm-pi-ai.providers', null)
+    if (!provs || typeof provs !== 'object') return []
+    const out: Array<{ id: string; name: string; baseURL: string; models: number }> = []
+    for (const [id, v] of Object.entries(provs)) {
+      const p = (v || {}) as Record<string, unknown>
+      out.push({
+        id,
+        name: String(p.displayName || p.name || id),
+        baseURL: String(p.baseURL || ''),
+        models: Array.isArray(p.models) ? p.models.length : 0,
+      })
+    }
+    return out
+  }
 
   function buildSettingsTabs(): SettingsTabDef[] {
     const def = (id: string, label: string, desc: string, values: string[], current: () => string, apply: (v: string) => void, changed: () => boolean): SettingDef =>
@@ -2128,6 +2228,19 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
                 () => advisorEnabled),
             ],
           },
+          {
+            name: tr('settings.group.providers'),
+            items: [
+              def('agent-default-model', tr('settings.defaultModel.label'), tr('settings.defaultModel.desc'), [''],
+                () => (displayModel.provider ? displayModel.provider + '/' + displayModel.model : '—'),
+                () => { void openPicker(false); setStatus(tr('settings.defaultModel.hint'), C.green) },
+                () => false),
+              ...dshProviders().map((pr) => def('llm-pi-ai.providers.' + pr.id, pr.name, tr('settings.provider.desc') + ' ' + pr.id + (pr.baseURL ? ' · ' + pr.baseURL : ''), [''],
+                () => pr.models + ' models' + (pr.baseURL ? ' · ' + truncate(pr.baseURL, 22) : ''),
+                () => { void openPicker(false); setStatus(pr.id + ' — ' + tr('settings.defaultModel.hint'), C.green) },
+                () => false)),
+            ],
+          },
         ],
       },
       {
@@ -2159,10 +2272,6 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
           {
             name: tr('settings.group.startup'),
             items: [
-              def('startup.quiet', tr('settings.quiet.label'), tr('settings.quiet.desc'), BOOL_VALS,
-                () => (getCfg(cfg, 'startup.quiet', false) ? 'on' : 'off'),
-                (v) => { setCfg(cfg, 'startup.quiet', v === 'on'); saveConfig(cfg) },
-                () => !!getCfg(cfg, 'startup.quiet', false)),
               def('autoResume', tr('settings.autoResume.label'), tr('settings.autoResume.desc'), BOOL_VALS,
                 () => (getCfg(cfg, 'autoResume', false) ? 'on' : 'off'),
                 (v) => { setCfg(cfg, 'autoResume', v === 'on'); saveConfig(cfg) },
@@ -2176,6 +2285,28 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         label: 'session',
         groups: [
           {
+            name: tr('settings.group.general'),
+            items: [
+              def('ui-conversation.busyEnter', tr('settings.busyEnter.label'), tr('settings.busyEnter.desc'), ['queue', 'steer'],
+                () => busyEnterMode,
+                (v) => {
+                  busyEnterMode = v === 'steer' ? 'steer' : 'queue'
+                  const ds = dshSettings()
+                  setCfg(ds, 'ui-conversation.busyEnter', busyEnterMode)
+                  saveDsh(ds)
+                },
+                () => busyEnterMode !== 'queue'),
+              def('permission.defaultPreset', tr('settings.permission.label'), tr('settings.permission.desc'), ['read-only', 'workspace-write', 'danger-full-access'],
+                () => String(getCfg(dshSettings(), 'permission.defaultPreset', 'workspace-write') || 'workspace-write'),
+                (v) => {
+                  const ds = dshSettings()
+                  setCfg(ds, 'permission.defaultPreset', v)
+                  saveDsh(ds)
+                },
+                () => !!getCfg(dshSettings(), 'permission.defaultPreset', null)),
+            ],
+          },
+          {
             name: 'Agent',
             items: [
               def('preset.id', tr('settings.preset.label'), tr('settings.preset.desc'), presetVals,
@@ -2186,6 +2317,33 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
                 },
                 (v) => applyPreset(v),
                 () => !!presetId),
+            ],
+          },
+        ],
+      },
+      {
+        id: 'plugins',
+        label: 'plugins',
+        groups: [
+          {
+            name: tr('settings.group.plugins'),
+            items: [
+              def('shell.timeoutMs', tr('settings.shellTimeout.label'), tr('settings.shellTimeout.desc'), ['60000', '120000', '300000', '600000'],
+                () => String(getCfg(dshSettings(), 'shell.timeoutMs', 120000)),
+                (v) => { const ds = dshSettings(); setCfg(ds, 'shell.timeoutMs', Number(v)); saveDsh(ds) },
+                () => !!getCfg(dshSettings(), 'shell.timeoutMs', null)),
+              def('shell.maxOutputBytes', tr('settings.shellOutput.label'), tr('settings.shellOutput.desc'), ['32768', '64000', '131072', '262144'],
+                () => String(getCfg(dshSettings(), 'shell.maxOutputBytes', 64000)),
+                (v) => { const ds = dshSettings(); setCfg(ds, 'shell.maxOutputBytes', Number(v)); saveDsh(ds) },
+                () => !!getCfg(dshSettings(), 'shell.maxOutputBytes', null)),
+              def('agent-loop.maxParallelToolCalls', tr('settings.parallel.label'), tr('settings.parallel.desc'), ['1', '4', '10', '20'],
+                () => String(getCfg(dshSettings(), 'agent-loop.maxParallelToolCalls', 10)),
+                (v) => { const ds = dshSettings(); setCfg(ds, 'agent-loop.maxParallelToolCalls', Number(v)); saveDsh(ds) },
+                () => !!getCfg(dshSettings(), 'agent-loop.maxParallelToolCalls', null)),
+              def('web-search-deepseek.maxUses', tr('settings.webSearchUses.label'), tr('settings.webSearchUses.desc'), ['1', '3', '5', '10'],
+                () => String(getCfg(dshSettings(), 'web-search-deepseek.maxUses', 5)),
+                (v) => { const ds = dshSettings(); setCfg(ds, 'web-search-deepseek.maxUses', Number(v)); saveDsh(ds) },
+                () => !!getCfg(dshSettings(), 'web-search-deepseek.maxUses', null)),
             ],
           },
         ],
@@ -2386,15 +2544,15 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       }
       const it = r.item
       const changed = it.changed()
-      const pad = ' '.repeat(Math.max(0, maxLabel - strWidth(it.label)))
-      const vw = Math.max(4, (split ? W - 6 - sidebarWidth - 2 : W - 6) - 2 - maxLabel - 4)
-      const vtxt = truncate(it.current(), vw)
+      const rowW = split ? W - 6 - sidebarWidth - 2 : W - 6 // list column width, cursor included
+      const vtxt = truncate(it.current(), Math.max(4, rowW - 4 - maxLabel))
+      const mid = Math.max(1, rowW - 4 - maxLabel - strWidth(vtxt))
       const inActive = split && activeGroup >= 0 && !!t.groups[activeGroup] && t.groups[activeGroup].items.some((x) => x.id === it.id)
       if (split && !inActive && !sel) {
         // de-emphasized rows outside the active section render as plain text
-        listLines.push(C.dim + (sel ? '  › ' : '    ') + it.label + pad + '  ' + vtxt + C.reset)
+        listLines.push(C.dim + (sel ? '  › ' : '    ') + it.label + ' '.repeat(Math.max(0, maxLabel - strWidth(it.label)) + mid) + vtxt + C.reset)
       } else {
-        listLines.push((sel ? C.green + '  › ' : '    ') + C.bright + it.label + pad + C.reset + '  ' + (changed ? C.yellow : sel ? C.green : C.dim) + vtxt + C.reset)
+        listLines.push((sel ? C.green + '  › ' : '    ') + C.bright + it.label + ' '.repeat(Math.max(0, maxLabel - strWidth(it.label)) + mid) + C.reset + (changed ? C.yellow : sel ? C.green : C.dim) + vtxt + C.reset)
       }
     }
     while (listLines.length < listRows) listLines.push('')
@@ -2410,7 +2568,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       const height = Math.max(listLines.length, side.length)
       for (let i = 0; i < height; i++) {
         const left = side[i] || ' '.repeat(sidebarWidth)
-        lines.push(truncate(left + sep + (listLines[i] || ''), W - 6))
+        lines.push(truncateAnsi(left + sep + (listLines[i] || ''), W - 6))
       }
     } else {
       lines.push(...listLines)
@@ -2500,12 +2658,6 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   ]
   const ansiRe = /\x1b\[[0-9;]*m/g
   const plainW = (s: string) => strWidth(s.replace(ansiRe, ''))
-  /** Paint a status row with the theme background, re-applying it after every inner reset.
-   *  `right` (optional) is right-aligned, balancing the row instead of a pure left block. */
-  const bgLine = (s: string, width: number, right = ''): string => {
-    const gap = Math.max(2, width - plainW(s) - plainW(right))
-    return C.bg + (s + ' '.repeat(gap) + right).split(C.reset).join(C.reset + C.bg) + C.reset
-  }
 
   /** Display name of the active agent preset (splash + status line A). */
   function presetDisplayName(): string {
@@ -2528,7 +2680,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     const row = (content: string) => D + '│' + C.reset + center(content) + D + '│' + C.reset
     const divider = row(D + '─'.repeat(inner) + C.reset)
     // single centered column: DASH wordmark + model · tips · preset · sessions
-    lines.push(D + '┌───' + 'DASH v0.2.0' + '─'.repeat(Math.max(0, inner - 'DASH v0.2.0'.length - 3)) + '┐' + C.reset)
+    lines.push(D + '┌───' + 'DASH v0.0.1' + '─'.repeat(Math.max(0, inner - 'DASH v0.0.1'.length - 3)) + '┐' + C.reset)
     lines.push(row(''))
     for (const lg of DASH_LOGO) lines.push(row(C.yellow + lg + C.reset))
     lines.push(row(''))
@@ -2898,6 +3050,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       case 'app.clipboard.copyLine': setStatus('clipboard unavailable in terminal', C.yellow); return true
       case 'app.clipboard.copyPrompt': setStatus('clipboard unavailable in terminal', C.yellow); return true
       case 'app.agents.hub': openHub(); return true
+      case 'app.trace': openTrace(); return true
       case 'app.plan.toggle': planToggle(); return true
       case 'app.history.search': openHistSearch(); return true
       case 'app.session.observe': setStatus('session observe: coming in a later iteration', C.yellow); return true
@@ -2909,7 +3062,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   function maxScroll(): number {
     const draftLines = wrapDraft(W - 4)
     const maxShown = Math.min(draftLines.length, 4)
-    const vis = Math.max(3, H - 2 - maxShown)
+    const vis = Math.max(3, H - 3 - maxShown)
     return Math.max(0, allLines().length - vis)
   }
 
@@ -3075,6 +3228,88 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     return lines
   }
 
+  /** Extract plain text from content blocks (text blocks only). */
+  function blockText(c: ContentBlock[] | null | undefined): string {
+    if (!c) return ''
+    return c.map((b) => (b.type === 'text' ? b.text : '')).filter(Boolean).join('\n')
+  }
+
+  /** Color-coded event trace (Ctrl+Tab), mirroring the web UI's timeline. */
+  function traceLines(): string[] {
+    const t = trace
+    if (!t) return []
+    const lines: string[] = []
+    lines.push(C.bright + '  ─ ' + tr('trace.title') + C.reset + C.dim + ' · ' + t.ev.length + ' ' + tr('trace.events') + C.reset + C.bright + ' ─ (↑↓ · PgUp/PgDn · Esc close)' + C.reset)
+    lines.push('')
+    if (!t.ev.length) {
+      lines.push(C.dim + '    no events' + C.reset)
+      return lines
+    }
+    const names = new Map<string, string>()
+    for (const e of t.ev) if (e.type === 'tool/call') names.set(e.data.callId, e.data.name)
+    const rendered: string[] = []
+    for (const ev of t.ev) rendered.push(traceLine(ev, names))
+    const maxLines = Math.max(4, H - 7)
+    const start = Math.max(0, rendered.length - maxLines - t.scroll)
+    const end = Math.max(0, rendered.length - t.scroll)
+    return lines.concat(rendered.slice(start, Math.max(start, end)))
+  }
+
+  function traceLine(ev: SessionEvent, names: Map<string, string>): string {
+    const d = new Date(ev.time)
+    const T = C.dim + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0') + C.reset + ' '
+    const w = W - 14
+    switch (ev.type) {
+      case 'turn/start': return T + C.purple + '● turn ' + ev.data.turn + ' start' + C.reset
+      case 'turn/end': {
+        const bad = ev.data.reason.kind === 'error' || ev.data.reason.kind === 'max-tokens' || ev.data.reason.kind === 'failed'
+        return T + (bad ? C.red : C.green) + '● turn ' + ev.data.turn + ' end · ' + ev.data.reason.kind + C.reset
+      }
+      case 'user/message': return T + C.blue + '┃ ' + C.reset + truncate(blockText(ev.data.content).replace(/\n/g, ' '), w)
+      case 'assistant/message': {
+        const txt = blockText(ev.data.message.content).replace(/\n/g, ' ') || '[tool calls]'
+        return T + C.green + '◉ ' + C.reset + truncate(txt, w)
+      }
+      case 'tool/call': return T + C.yellow + '⛭ ' + ev.data.name + C.reset + C.dim + ' ' + truncate(ev.data.arguments.replace(/\s+/g, ' '), 48) + C.reset
+      case 'tool/result': {
+        if (ev.data.error) {
+          return T + C.red + '✗ ' + (names.get(ev.data.callId || '') || 'tool') + C.reset + C.dim + ' ' + truncate(ev.data.error.code, 60) + C.reset
+        }
+        const txt = blockText(ev.data.message.content).replace(/\n/g, ' ')
+        return T + C.green + '✓ ' + (names.get(ev.data.callId || '') || 'tool') + C.reset + C.dim + ' ' + truncate(txt, 60) + C.reset
+      }
+      case 'step/start': return T + C.dim + '▸ step ' + ev.data.step + ' · turn ' + ev.data.turn + C.reset
+      case 'todo/write': {
+        const parts = ev.data.todos.map((td) =>
+          (td.status === 'completed' ? C.green + '✓' : td.status === 'in_progress' ? C.yellow + '⏳' : C.dim + '○') + C.reset +
+          (td.status === 'in_progress' ? C.yellow : C.dim) + ' ' + td.content + C.reset)
+        return T + C.cyan + '◐ todo' + C.reset + ' ' + truncate(parts.join(' · '), w + 8)
+      }
+      case 'request/context': return T + C.purple + '⚙ ' + ev.data.provider + '/' + ev.data.model + C.reset + (ev.data.contextWindow ? C.dim + ' · ctx ' + fmtTokens(ev.data.contextWindow) + C.reset : '')
+      case 'session/title': return T + C.cyan + '🏷 ' + (ev.data.title || '') + C.reset
+      case 'compaction/start': return T + C.amber + '🧹 compaction start' + C.reset
+      case 'compaction/end': return T + C.amber + '🧹 compaction end' + C.reset
+      default: return T + C.dim + String(ev.type) + C.reset
+    }
+  }
+
+  function openTrace(): void {
+    if (!agent || !agent.session) { setStatus('no session yet', C.yellow); return }
+    trace = { ev: agent.session.events, scroll: 0 }
+    dirty = true
+  }
+
+  function traceKeys(ev: KeyEvent): void {
+    if (!trace) return
+    if (ev.key === 'escape' || (ev.char === 'c' && ev.ctrl)) { trace = null; dirty = true; return }
+    if (ev.key === 'up') { trace.scroll += 1; dirty = true; return }
+    if (ev.key === 'down') { trace.scroll = Math.max(0, trace.scroll - 1); dirty = true; return }
+    if (ev.key === 'pageup') { trace.scroll += 10; dirty = true; return }
+    if (ev.key === 'pagedown') { trace.scroll = Math.max(0, trace.scroll - 10); dirty = true; return }
+    if (ev.key === 'home') { trace.scroll = 1e9; dirty = true; return }
+    if (ev.key === 'end') { trace.scroll = 0; dirty = true; return }
+  }
+
   function resumeLines(): string[] {
     if (!resumePick) return []
     const idx = resumePick.idx
@@ -3152,7 +3387,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     const draftLines = wrapDraft(W - 4)
     const maxShown = Math.min(draftLines.length, 4)
     const shown = draftLines.slice(-maxShown)
-    const vis = Math.max(3, H - 2 - maxShown)
+    const vis = Math.max(3, H - 3 - maxShown)
 
     let content: string[] = []
     let unread = 0
@@ -3164,6 +3399,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     else if (presetPick) content = presetLines()
     else if (fileMenu) content = fileMenuLines()
     else if (rewind) content = rewindLines()
+    else if (trace) content = traceLines()
     else if (histSearch) content = histLines()
     else if (cmdMenu) content = menuLines()
     else if (welcomeVisible()) content = splashLines()
@@ -3179,6 +3415,25 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         const sticky = C.yellow + '▍' + C.reset + C.dim + ' ' + tr('sticky.prompt') + C.reset + truncate(lastUserText, W - 18)
         content = [sticky].concat(content.slice(0, vis - 1))
       }
+      // omp-style pinned todo list: once the agent writes one it stays on
+      // top of the transcript, never buried by new messages
+      if (todos.length) {
+        const block: string[] = [C.yellow + '▍' + C.reset + C.dim + ' ' + tr('todo.title') + C.reset]
+        const shown = todos.slice(0, 4)
+        for (const t of shown) {
+          const ic = t.status === 'completed' ? C.green + '✓' : t.status === 'in_progress' ? C.yellow + '⏳' : C.dim + '○'
+          const tc = t.status === 'in_progress' ? C.yellow : C.dim
+          block.push('  ' + ic + C.reset + tc + ' ' + truncate(t.content, W - 10) + C.reset)
+        }
+        if (todos.length > 4) block.push(C.dim + '  +' + (todos.length - 4) + ' more' + C.reset)
+        content = block.concat(content.slice(0, Math.max(0, vis - block.length)))
+      }
+      // loading indicator where the reply will appear
+      if (busy && following) {
+        const spin = spinner[tick % spinner.length]
+        const load = C.yellow + spin + C.reset + C.dim + ' ' + tr('status.generating') + C.reset
+        content = content.slice(0, Math.max(0, vis - 1)).concat([load])
+      }
     }
     for (let i = 0; i < vis; i++) frame.push(content[i] || '')
 
@@ -3190,13 +3445,68 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     const cacheTxt = cacheReadTotal ? C.dim + ' · ' + tr('status.cache') + ' ' + cachePct + '%' + C.reset : ''
     const effortTxtFull = effortTxt ? C.dim + ' · ◉ ' + effortTxt + C.reset : ''
     const elapsed = sessionStartAt ? Math.max(0, Math.floor((Date.now() - sessionStartAt) / 1000)) : 0
-    const elapsedTxt = C.dim + ' · ⏱ ' + Math.floor(elapsed / 60) + ':' + String(elapsed % 60).padStart(2, '0') + C.reset
     const presetTxt = W >= 100 ? C.dim + ' · ' + C.reset + C.cyan + truncate(presetDisplayName(), 14) + C.reset : ''
-    frame.push(bgLine(C.bright + '⬢ ' + C.reset + C.purple + (displayModel.provider ? displayModel.provider + '/' + displayModel.model : '—') + C.reset +
-      presetTxt + effortTxtFull + C.dim + ' · in ' + fmtTokens(usage.in) + ' · out ' + fmtTokens(usage.out) + C.reset,
-      W, tpsTxt + cacheTxt + elapsedTxt))
+    const elapsedTxt = C.dim + '⏱ ' + Math.floor(elapsed / 60) + ':' + String(elapsed % 60).padStart(2, '0') + C.reset
+    // activity + queue + status: dim secondary line above the status bar
+    let act = ''
+    if (busy) {
+      const spin = spinner[tick % spinner.length]
+      if (activity && activity.phase === 'tool') {
+        const secs = Math.floor((Date.now() - activity.startedAt) / 1000)
+        act = C.yellow + spin + ' ⛭ ' + (activity.label ?? '') + (secs >= 1 ? ' · ' + secs + 's' : '') + C.reset
+      } else {
+        const nav = modelNarration()
+        if (nav) act = C.purple + spin + ' ⏵ ' + nav + C.reset
+        else {
+          const phrases = thinkPhrases()
+          const phrase = phrases[Math.floor(tick / 12) % phrases.length]
+          act = C.purple + spin + ' ' + phrase + C.reset
+        }
+      }
+    } else if (activity && activity.phase === 'done') {
+      const secs = Math.max(1, Math.round((Date.now() - activity.startedAt) / 1000))
+      act = C.green + '✓ ' + turnTools + ' tools · ' + secs + 's' + C.reset
+    }
+    const queueTxt = queue.length ? 'queue ' + queue.length : ''
+    const unreadTxt = unread > 0 ? '↓ ' + unread + tr('status.unread') : ''
+    const statusTxt = statusText ? (statusColor || C.green) + statusText + C.reset : ''
+    // context-window indicator: usage/total + 10-cell bar
+    let ctxTxt = ''
+    if (contextWindow > 0) {
+      const used = usage.in + usage.out
+      const pct = Math.min(1, used / contextWindow)
+      const filled = Math.round(pct * 10)
+      ctxTxt = C.dim + 'ctx ' + C.reset + fmtTokens(used) + C.dim + '/' + fmtTokens(contextWindow) + C.reset + ' ' + C.purple + '█'.repeat(filled) + '░'.repeat(10 - filled) + C.reset
+    }
+    const cwdShort = (config.cwd || process.cwd()).split('/').slice(-2).join('/')
+    const infoBits: string[] = []
+    if (act) infoBits.push(act) // loading indicator first, far left
+    if (usage.in || usage.out) infoBits.push('in ' + fmtTokens(usage.in) + ' · out ' + fmtTokens(usage.out))
+    if (tpsNow) infoBits.push(sparkline() + ' ' + tpsNow + ' tok/s')
+    if (cacheReadTotal) infoBits.push(tr('status.cache') + ' ' + cachePct + '%')
+    if (queueTxt) infoBits.push(queueTxt)
+    if (unreadTxt) infoBits.push(unreadTxt)
+    if (statusTxt) infoBits.push(statusTxt)
+    if (W >= 100) {
+      const bits: string[] = []
+      if (gitBranch) bits.push('git:' + gitBranch)
+      if (sessionTitle) bits.push(truncate(sessionTitle, 16))
+      if (bits.length) infoBits.push(C.dim + bits.join(' · ') + C.reset)
+    }
+    // secondary line: everything except the status-bar essentials, dimmed
+    frame.push((infoBits.length ? C.dim : '') + ' ' + infoBits.join(C.dim + ' · ' + C.reset) + C.reset)
+    // status bar (pure-black background): model · preset · effort  |  ctx · elapsed
+    const left = C.bright + '⬢ ' + C.reset + C.purple + (displayModel.provider ? displayModel.provider + '/' + displayModel.model : '—') + C.reset + presetTxt + effortTxtFull
+    const rightSegs: string[] = []
+    if (contextWindow > 0) rightSegs.push(ctxTxt)
+    if (sessionStartAt) rightSegs.push(elapsedTxt)
+    const right = rightSegs.join(C.dim + ' · ' + C.reset)
+    const gap = Math.max(2, W - plainW(left) - plainW(right))
+    const BLACK = '\x1b[48;5;0m'
+    const bar = (left + ' '.repeat(gap) + right + ' '.repeat(Math.max(0, W - plainW(left) - gap - plainW(right))))
+    frame.push(BLACK + bar.split(C.reset).join(C.reset + BLACK) + C.reset)
 
-    // prompt / draft — sits between status line A and status line C
+    // prompt / draft — the bottom rows belong to the input (opencode style)
     const prompt = exitConfirm ? C.yellow + ' exit DASH? [y/n]' + C.reset : ''
     if (prompt) {
       frame.push(prompt)
@@ -3208,49 +3518,6 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       })
       for (let i = shown.length; i < maxShown; i++) frame.push('')
     }
-
-    // status line C (bottom row): activity + queue + status + ctx + git/cwd/title
-    let act = ''
-    if (busy) {
-      const spin = spinner[tick % spinner.length]
-      if (activity && activity.phase === 'tool') {
-        const secs = Math.floor((Date.now() - activity.startedAt) / 1000)
-        act = C.yellow + spin + ' ⛭ ' + (activity.label ?? '') + (secs >= 1 ? ' · ' + secs + 's' : '') + C.reset + '  '
-      } else {
-        const nav = modelNarration()
-        if (nav) act = C.purple + spin + ' ⏵ ' + nav + C.reset + '  '
-        else {
-          const phrases = thinkPhrases()
-          const phrase = phrases[Math.floor(tick / 12) % phrases.length]
-          act = C.purple + spin + ' ' + phrase + C.reset + '  '
-        }
-      }
-    } else if (activity && activity.phase === 'done') {
-      const secs = Math.max(1, Math.round((Date.now() - activity.startedAt) / 1000))
-      act = C.green + '✓ ' + turnTools + ' tools · ' + secs + 's' + C.reset + '  '
-    }
-    const queueTxt = queue.length ? C.yellow + 'queue ' + queue.length + C.reset + ' ' : ''
-    const unreadTxt = unread > 0 ? C.yellow + '↓ ' + unread + tr('status.unread') + C.reset + ' ' : ''
-    const statusTxt = statusText ? (statusColor || C.green) + statusText + C.reset : ''
-    // context-window indicator (restored): usage/total + 10-cell bar
-    let ctxTxt = ''
-    if (contextWindow > 0) {
-      const used = usage.in + usage.out
-      const pct = Math.min(1, used / contextWindow)
-      const filled = Math.round(pct * 10)
-      ctxTxt = C.dim + ' ctx ' + C.reset + fmtTokens(used) + C.dim + '/' + fmtTokens(contextWindow) + C.reset + ' ' + C.purple + '█'.repeat(filled) + '░'.repeat(10 - filled) + C.reset
-    }
-    let rightTxt = ''
-    const cwdShort = (config.cwd || process.cwd()).split('/').slice(-2).join('/')
-    if (W >= 100) {
-      const bits: string[] = []
-      if (gitBranch) bits.push('git:' + gitBranch)
-      bits.push(cwdShort)
-      if (sessionTitle) bits.push(truncate(sessionTitle, 16))
-      rightTxt = C.dim + (ctxTxt ? ' · ' : '') + bits.join(' · ') + C.reset
-    }
-    const hintTxt = C.dim + '  /help' + C.reset
-    frame.push(bgLine(act + '  ' + queueTxt + unreadTxt + statusTxt + hintTxt, W, ctxTxt + rightTxt))
     return frame
   }
 
@@ -3278,27 +3545,49 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     }
     for (let i = frame.length; i < prevFrame.length; i++) outBuf.push('\x1b[' + (i + 1) + ';1H\x1b[2K')
     prevFrame = frame
-    // editor cursor (input block now sits one row higher, above status line C)
+    // editor cursor (input block sits at the very bottom, status bar above it)
     const draftLines = wrapDraft(W - 4)
     const maxShown = Math.min(draftLines.length, 4)
     const shown = draftLines.slice(-maxShown)
-    let cursorRow = H - 2 - maxShown
+    let cursorRow = H - 1 - maxShown
     let cursorCol = 3
     for (let i = 0; i < shown.length; i++) {
       const ln = shown[i]
       if (draft.cursor >= ln.start && draft.cursor <= ln.end) {
-        cursorRow = H - 2 - (maxShown - 1 - i)
+        cursorRow = H - 1 - (maxShown - 1 - i)
         cursorCol = (i === 0 ? 3 : 2) + strWidth(ln.text.slice(0, draft.cursor - ln.start))
         break
       }
     }
-    outBuf.push('\x1b[' + Math.max(1, cursorRow) + ';' + Math.max(1, cursorCol) + 'H')
+    // blinking white block cursor at the editor position (self-drawn; the
+    // hardware cursor stays hidden). Reverse-video the character under the
+    // cursor so the terminal renders a white rectangle.
+    const blinkOn = Math.floor(tick / 12) % 2 === 0
+    let curCh = ' '
+    for (const ln of shown) {
+      if (draft.cursor >= ln.start && draft.cursor <= ln.end) {
+        const i = draft.cursor - ln.start
+        curCh = i < ln.text.length ? ln.text[i] : ' '
+        break
+      }
+    }
+    outBuf.push('\x1b[' + Math.max(1, cursorRow) + ';' + Math.max(1, cursorCol) + 'H' + (blinkOn ? '\x1b[7m' + curCh + '\x1b[0m' : curCh))
     out.write(outBuf.join(''))
   }
 
   let drawTimer = setInterval(() => {
     tick++
     if (tick % 750 === 0) refreshGitBranch()
+    // stuck-loading guard: no turn/start within 90s of a send (agent hung or died)
+    if (busy && sendAt && !streaming && Date.now() - sendAt > 90000) {
+      busy = false
+      activity = null
+      sendAt = 0
+      setStatus('✗ no response from agent', C.red)
+      dirty = true
+    }
+    // blink driver: redraw every ~480ms so the block cursor flickers
+    if (tick % 12 === 0) dirty = true
     if (dirty) {
       dirty = false
       flush()

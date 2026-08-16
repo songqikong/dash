@@ -99,7 +99,7 @@
 
 - ✅ 主题 token 体系（dark/light 两套 256 色板：fg/dim/accent/green/blue/yellow/red/purple/cyan）
 - ✅ theme.light 配置持久化 + /theme dark|light + /settings 切换
-- ✅ 启动横幅（DASH v0.2.0 — oh-my-pi usage · DSH kernel · 模型 · /help，简化版）
+- ✅ 启动横幅已移除（session 头部不再显示横幅行；版本号仅显示于欢迎屏顶部框线）
 
 ## K. 设置与配置（settings.md）
 

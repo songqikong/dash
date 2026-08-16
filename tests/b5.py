@@ -64,7 +64,7 @@ def check(ok, label):
         print('[FAIL] %s' % label)
         fails.append(label)
 
-wait_for(b'DASH v0.2.0', 120, 'ready (splash v0.2.0)')
+wait_for(b'DASH v0.0.1', 120, 'ready (splash v0.0.1)')
 
 # 1) /skills lists skills
 send(b'/skills\r')

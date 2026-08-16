@@ -47,7 +47,7 @@ def check(ok, label):
         print('[FAIL] %s' % label)
         fails.append(label)
 
-wait_for(b'DASH v0.2.0', 120, 'ready')
+wait_for(b'DASH v0.0.1', 120, 'ready')
 
 # ── /preset picker shows the four official modes
 send(b'/preset\r')

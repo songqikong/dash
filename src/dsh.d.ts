@@ -174,6 +174,7 @@ declare module '@deepseek-ai/dsh-session' {
     'compaction/start': Record<string, never>
     'compaction/end': Record<string, never>
     'agent-preset/selected': { agentPreset: string }
+    'todo/write': { todos: Array<{ content: string; status: 'pending' | 'in_progress' | 'completed' }> }
   }
 
   export type SessionEventType = keyof SessionEventMap

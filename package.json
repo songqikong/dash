@@ -1,6 +1,6 @@
 {
   "name": "dash-tui",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "DASH — Deepseek Agentic Service Harness. oh-my-pi style TUI on the DSH agent kernel, run in the terminal via `dsh --profile dash`. TypeScript sources in src/, compiled to dist/.",
   "license": "MIT",
   "type": "module",

@@ -81,6 +81,7 @@ export const ACTIONS: Record<string, { desc: string }> = {
   'app.plan.toggle': { desc: 'Toggle plan mode' },
   'app.history.search': { desc: 'Search history' },
   'app.session.observe': { desc: 'Observe sessions' },
+  'app.trace': { desc: 'Toggle event trace (Ctrl+Tab)' },
 }
 
 // omp defaults: action -> default keys
@@ -140,6 +141,7 @@ export const DEFAULT_ACTION_KEYS: Record<string, string[]> = {
   'app.plan.toggle': ['alt+shift+p'],
   'app.history.search': ['ctrl+r'],
   'app.session.observe': ['ctrl+s'],
+  'app.trace': ['ctrl+tab'],
 }
 
 /** Build key -> [actions] map; remap from ~/.dash/keybindings.yml wins. */

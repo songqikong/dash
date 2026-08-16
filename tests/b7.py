@@ -49,7 +49,7 @@ def check(ok, label):
 # ── welcome splash at startup (omp-style frame) ──
 ok = wait_for(b'Welcome back!', 60, 'splash')
 check(ok, 'welcome splash shows at startup')
-check(b'DASH v0.2.0' in buf, 'splash title DASH v0.2.0')
+check(b'DASH v0.0.1' in buf, 'splash title DASH v0.0.1')
 check('██████╗   █████╗ ███████╗██╗  ██╗'.encode('utf-8') in buf, 'DASH wordmark rendered')
 check(b'\xe2\x94\x8c' in buf, 'sharp box corners (┌)')
 check('\u256d'.encode('utf-8') not in buf, 'no rounded corners (╭)')
