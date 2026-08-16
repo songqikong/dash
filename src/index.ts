@@ -244,6 +244,7 @@ interface Colors {
   cyan: string
   italic: string
   bold: string
+  bg: string
 }
 
 export const name = 'dash-tui'
@@ -434,11 +435,11 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   }
 
   // ── theme ────────────────────────────────────────────────────────────────
-  const THEMES: Record<string, { name: string; fg: number; dim: number; accent: number; green: number; blue: number; yellow: number; amber: number; red: number; purple: number; cyan: number }> = {
-    dark: { name: 'dark', fg: 254, dim: 245, accent: 78, green: 121, blue: 117, yellow: 222, amber: 229, red: 203, purple: 141, cyan: 81 },
-    light: { name: 'light', fg: 237, dim: 244, accent: 29, green: 28, blue: 25, yellow: 130, amber: 94, red: 124, purple: 91, cyan: 30 },
+  const THEMES: Record<string, { name: string; fg: number; dim: number; accent: number; green: number; blue: number; yellow: number; amber: number; red: number; purple: number; cyan: number; bg: number }> = {
+    dark: { name: 'dark', fg: 254, dim: 245, accent: 78, green: 121, blue: 117, yellow: 222, amber: 229, red: 203, purple: 141, cyan: 81, bg: 236 },
+    light: { name: 'light', fg: 237, dim: 244, accent: 29, green: 28, blue: 25, yellow: 130, amber: 94, red: 124, purple: 91, cyan: 30, bg: 253 },
   }
-  let C: Colors = { reset: '', dim: '', green: '', bright: '', blue: '', yellow: '', amber: '', red: '', purple: '', cyan: '', italic: '', bold: '' }
+  let C: Colors = { reset: '', dim: '', green: '', bright: '', blue: '', yellow: '', amber: '', red: '', purple: '', cyan: '', italic: '', bold: '', bg: '' }
   const fg256 = (n: number) => '\x1b[38;5;' + n + 'm'
   function applyTheme(): void {
     const t = THEMES[cfg.theme && cfg.theme.light ? 'light' : 'dark'] || THEMES.dark
@@ -454,6 +455,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     C.cyan = fg256(t.cyan)
     C.italic = '\x1b[3m'
     C.bold = '\x1b[1m'
+    C.bg = '\x1b[48;5;' + t.bg + 'm'
     if (cfg.colorBlindMode) { const g = C.green; C.green = C.blue; C.blue = g }
     try { dirty = true } catch (e) { /* dirty declared later */ }
   }
@@ -1916,7 +1918,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       list.forEach((p, i) => {
         const cur = (presetId || 'standard') === p.id ? C.dim + '  ' + tr('common.current') + C.reset : ''
         const mark = i === idx ? C.green + '  › ' : '    '
-        lines.push(mark + (p.name || p.id) + C.dim + '  ' + p.id + C.reset + cur)
+        lines.push(mark + C.bright + (p.name || p.id) + C.reset + C.dim + '  ' + p.id + C.reset + cur)
         if (p.description) lines.push(C.dim + '      ' + p.description + C.reset)
       })
     }
@@ -2299,7 +2301,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         // de-emphasized rows outside the active section render as plain text
         listLines.push(C.dim + (sel ? '  › ' : '    ') + it.label + pad + '  ' + vtxt + C.reset)
       } else {
-        listLines.push((sel ? C.green + '  › ' : '    ') + it.label + pad + '  ' + (changed ? C.yellow : sel ? C.green : C.dim) + vtxt + C.reset)
+        listLines.push((sel ? C.green + '  › ' : '    ') + C.bright + it.label + pad + C.reset + '  ' + (changed ? C.yellow : sel ? C.green : C.dim) + vtxt + C.reset)
       }
     }
     while (listLines.length < listRows) listLines.push('')
@@ -2405,6 +2407,9 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   ]
   const ansiRe = /\x1b\[[0-9;]*m/g
   const plainW = (s: string) => strWidth(s.replace(ansiRe, ''))
+  /** Paint a status row with the theme background, re-applying it after every inner reset. */
+  const bgLine = (s: string, width: number): string =>
+    C.bg + s.split(C.reset).join(C.reset + C.bg) + ' '.repeat(Math.max(0, width - plainW(s))) + C.reset
 
   function splashLines(): string[] {
     const lines: string[] = []
@@ -2449,7 +2454,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       if (!list.length) lines.push(row(D + tr('splash.noSessions') + C.reset))
       else for (const s of list) {
         const t = welcomeTitles[s.id] || s.id.slice(0, 24)
-        lines.push(row('• ' + truncate(t, Math.max(8, inner - 20)) + D + ' (' + relTime(s.time) + ')' + C.reset))
+        lines.push(row(C.bright + '• ' + truncate(t, Math.max(8, inner - 20)) + C.reset + D + ' (' + relTime(s.time) + ')' + C.reset))
       }
     }
     lines.push(row(''))
@@ -2527,7 +2532,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     lines.push(C.bright + '  ─ ' + tr('filemenu.title') + ': ' + C.reset + C.green + (fileMenu.dir + fileMenu.base) + C.reset + C.bright + ' ─ (' + tr('filemenu.hint') + ')' + C.reset)
     lines.push('')
     fileMenu.entries.forEach((e, i) => {
-      lines.push((i === idx ? C.green + '  › ' : '    ') + e + C.reset)
+      lines.push((i === idx ? C.green + '  › ' : '    ') + (i === idx ? C.green : C.bright) + e + C.reset)
     })
     return lines
   }
@@ -2669,7 +2674,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         const indent = '  ' + '  '.repeat(Math.min(e.depth, 4))
         const mark = i === idx ? C.green + '  › ' : '    '
         const status = e.activity === 'running' ? C.yellow + '● running' + C.reset : C.dim + '○ inactive' + C.reset
-        lines.push(indent + mark + e.label + C.dim + '  ' + e.mode + (e.hasChildren ? ' · sub' : '') + C.reset + '  ' + status)
+        lines.push(indent + mark + C.bright + e.label + C.reset + C.dim + '  ' + e.mode + (e.hasChildren ? ' · sub' : '') + C.reset + '  ' + status)
       })
     }
     return lines
@@ -2853,7 +2858,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         if (r.status === 'ok' && r.summary) lines.push(C.dim + '    ' + r.summary + C.reset)
         if (r.status === 'error') lines.push(C.red + '    error: ' + r.error + C.reset)
       } else if (r.kind === 'hotkey') {
-        lines.push(C.purple + '  ' + padRight(r.action, 30) + C.reset + C.dim + r.keys + C.reset + '  ' + r.desc)
+        lines.push(C.purple + '  ' + padRight(r.action, 30) + C.reset + C.dim + r.keys + C.reset + C.dim + '  ' + r.desc + C.reset)
       } else {
         wrapTo(r.text, w).forEach((ln) => lines.push(C.amber + ln + C.reset))
       }
@@ -2920,12 +2925,12 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     p.roles.forEach((name, i) => {
       const a = roleAssignment(name)
       const cur = name === currentRole && !p.temp ? C.dim + ' ◀' + C.reset : ''
-      lines.push((p.focus === 'role' && i === p.roleIdx ? C.green + '  › ' : '    ') + name + (a ? C.dim + '  ' + a.provider + '/' + a.model + C.reset : '') + cur + C.reset)
+      lines.push((p.focus === 'role' && i === p.roleIdx ? C.green + '  › ' : '    ') + C.bright + name + C.reset + (a ? C.dim + '  ' + a.provider + '/' + a.model + C.reset : '') + cur)
     })
     lines.push('')
     lines.push(C.dim + '  providers' + C.reset)
     p.providers.forEach((pr, i) => {
-      lines.push((p.focus === 'prov' && i === p.provIdx ? C.green + '  › ' : '    ') + pr.name + C.reset)
+      lines.push((p.focus === 'prov' && i === p.provIdx ? C.green + '  › ' : '    ') + C.bright + pr.name + C.reset)
     })
     lines.push('')
     lines.push(C.dim + '  models' + C.reset)
@@ -2933,7 +2938,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     p.models.forEach((m, i) => {
       const mark = p.focus === 'model' && i === p.modelIdx ? C.green + '  › ' : '    '
       const cur = m.id === displayModel.model ? C.dim + '  (current)' + C.reset : ''
-      lines.push(mark + m.name + C.dim + '  ' + m.id + C.reset + cur)
+      lines.push(mark + C.bright + m.name + C.reset + C.dim + '  ' + m.id + C.reset + cur)
     })
     return lines
   }
@@ -2948,7 +2953,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       lines.push(C.dim + '    no matches' + C.reset)
     } else {
       histSearch.matches.forEach((m, i) => {
-        lines.push((i === idx ? C.green + '  › ' : '    ') + truncate(m, W - 12) + (i === idx ? C.reset : C.dim + C.reset))
+        lines.push((i === idx ? C.green + '  › ' : '    ') + (i === idx ? C.green : C.bright) + truncate(m, W - 12) + C.reset)
       })
     }
     return lines
@@ -2961,7 +2966,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     lines.push(C.bright + '  ─ commands: ' + C.reset + C.green + cmdMenu.q + C.reset + C.bright + ' ─ (type to filter · ↑↓ · Enter/Tab complete · Esc close)' + C.reset)
     lines.push('')
     cmdMenu.matches.forEach((m, i) => {
-      lines.push((i === idx ? C.green + '  › ' : '    ') + m.name + C.dim + '  ' + m.desc + (i === idx ? '' : '') + C.reset)
+      lines.push((i === idx ? C.green + '  › ' : '    ') + (i === idx ? C.green : C.bright) + m.name + C.reset + C.dim + '  ' + m.desc + C.reset)
     })
     return lines
   }
@@ -2984,7 +2989,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         const ts = String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') + ' ' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0')
         const title = it.title || it.id
         const mark = i === idx ? C.green + '  › ' : '    '
-        lines.push(mark + truncate(title, W - 34) + C.dim + '  ' + ts + (it.cwd ? '  ' + it.cwd.split('/').slice(-2).join('/') : '') + C.reset)
+        lines.push(mark + C.bright + truncate(title, W - 34) + C.reset + C.dim + '  ' + ts + (it.cwd ? '  ' + it.cwd.split('/').slice(-2).join('/') : '') + C.reset)
       })
     }
     return lines
@@ -3000,7 +3005,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       lines.push(C.dim + '    no matches' + C.reset)
     } else {
       rewind.matches.forEach((m, i) => {
-        lines.push((i === idx ? C.green + '  › ' : '    ') + truncate(m.text, W - 12) + (i === idx ? C.reset : C.dim + C.reset))
+        lines.push((i === idx ? C.green + '  › ' : '    ') + (i === idx ? C.green : C.bright) + truncate(m.text, W - 12) + C.reset)
       })
     }
     return lines
@@ -3082,9 +3087,9 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     const effortTxtFull = effortTxt ? C.dim + ' · ◉ ' + effortTxt + C.reset : ''
     const elapsed = sessionStartAt ? Math.max(0, Math.floor((Date.now() - sessionStartAt) / 1000)) : 0
     const elapsedTxt = C.dim + ' · ⏱ ' + Math.floor(elapsed / 60) + ':' + String(elapsed % 60).padStart(2, '0') + C.reset
-    frame.push(C.bright + '⬢ ' + C.reset + C.purple + (displayModel.provider ? displayModel.provider + '/' + displayModel.model : '—') + C.reset +
+    frame.push(bgLine(C.bright + '⬢ ' + C.reset + C.purple + (displayModel.provider ? displayModel.provider + '/' + displayModel.model : '—') + C.reset +
       effortTxtFull + C.dim + ' · in ' + fmtTokens(usage.in) + ' · out ' + fmtTokens(usage.out) + C.reset +
-      tpsTxt + cacheTxt + elapsedTxt)
+      tpsTxt + cacheTxt + elapsedTxt, W))
 
     // status line B: activity + queue + status + git/cwd/title
     let act = ''
@@ -3119,7 +3124,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       rightTxt = C.dim + '  ' + bits.join(' · ') + C.reset
     }
     const hintTxt = C.dim + '  /help' + C.reset
-    frame.push(act + '  ' + queueTxt + unreadTxt + statusTxt + hintTxt + rightTxt)
+    frame.push(bgLine(act + '  ' + queueTxt + unreadTxt + statusTxt + hintTxt + rightTxt, W))
 
     // prompt / draft — the very bottom belongs to the input only
     const prompt = exitConfirm ? C.yellow + ' exit DASH? [y/n]' + C.reset : ''
