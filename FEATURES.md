@@ -38,7 +38,9 @@
 - ✅ Shift+Tab 思考级别循环（app.thinking.cycle；经 llm.resolveModelInfo reasoning.efforts）
 - ✅ 工具调用卡片：⛭/✓/✗ 状态、参数折叠（Ctrl+O 展开）、Ctrl+Shift+O 显隐工具行
 - ✅ 消息元数据（时间 HH:MM:SS · 耗时 · 模型）
-- ✅ 滚动区：PgUp/PgDn 分页、置顶「当前提示词」栏、底部未读「↓ N 新消息」pill、自动跟随
+- ✅ 滚动区：PgUp/PgDn 分页、置顶「当前提示词」栏、底部未读「↓ N 新消息」pill、自动跟随；鼠标滚轮滚动（SGR 鼠标 1000+1006，悬浮列表中滚轮移动选择）
+- ✅ 启动欢迎屏：尖角双栏框（无圆角），左侧 Welcome back! + 粗体 DASH 字符画 + 模型，右侧 Tips / Agent preset / 最近会话；首条消息后让位
+- ✅ 界面语言：默认全英文；`/lang <en|zh>` 或设置面板「Language」切换，即时生效并持久化 `lang`
 - ✅ 双击 Esc 时间回溯（rewind：选历史消息 → 以 seed fork 新 agent 原样重放 → 消息回填编辑器重发）
 - ✅ 错误横幅 / 中断标记 / compaction 卡片（compaction/start·end 事件 → 🧹 提示）
 - ✅ 会话标题生成显示（session/title 事件 → 顶栏）
@@ -55,9 +57,7 @@
 - ✅ 模型 + in/out tokens + 状态点（● idle/streaming）
 - ✅ 工作状态行：思考文案轮换、⏵ 模型自述（取最新 reasoning 行）、正在运行的工具（⛭ name · Ns）、spinner 帧预设（claude/dots/moon/arrows/line，config `activity.frames`）
 - ✅ 回合结束统计：✓ N 工具 · M tokens · 耗时
-- ✅ 上下文进度条（ctx N/M P%；思考/助手/上下文分段着色）
-- ✅ TPS 流式 gauge + 历史 sparkline（▁▂▃▄▅▆▇█，400ms 采样窗口 + 回合结束残差）
-- ✅ 缓存命中率（cacheRead/(in+cacheRead)）· 思考深度（reasoningEffort 显示）
+- ✅ omp 风格状态行（上下文进度条已移除）：⬢ 模型 · ◉ 思考深度 · in/out tokens · TPS sparkline（▁▂▃▄▅▆▇█，400ms 采样窗口 + 回合结束残差）· 缓存命中率（cacheRead/(in+cacheRead)）· ⏱ 会话耗时；全部位于输入框上方，底部只属于输入文字
 - ✅ git 分支 · cwd · 会话标题（右侧，宽终端显示）
 
 ## F. 模型管理（app.model.*）

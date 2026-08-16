@@ -3,6 +3,9 @@
 # header, double-Esc rewind with fork replay, session title, chat round trips.
 import os, pty, select, time, subprocess, fcntl, termios, struct, sys
 
+# seed the zh UI language so the Chinese assertions below hold
+open(os.path.expanduser('~/.dash/config.yml'), 'w').write('lang: zh\n')
+
 master, slave = pty.openpty()
 fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 36, 120, 0, 0))
 p = subprocess.Popen(['dsh', '--profile', 'dash'], stdin=slave, stdout=slave, stderr=slave,

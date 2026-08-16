@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-# DASH batch-3 pty test: status line v2 (context bar, TPS, cache, git branch),
-# model roles (/models 3-column picker, /role, config persistence), working
-# line (⏵ narration), real chat round trips.
+# DASH batch-3 pty test: omp-style status line (model · effort · tokens · TPS ·
+# cache · elapsed), model roles (/models 3-column picker, /role, config
+# persistence), working line (⏵ narration), real chat round trips.
 import os, pty, select, time, subprocess, fcntl, termios, struct, sys, shutil
+
+# seed the zh UI language so the Chinese assertions below hold
+open(os.path.expanduser('~/.dash/config.yml'), 'w').write('lang: zh\n')
 
 # git repo cwd for the git-branch check
 gdir = '/tmp/dashgit'
@@ -62,7 +65,7 @@ wait_for(b'DASH ready', 120, 'ready')
 time.sleep(1.5); read_avail(1)
 
 # 1) status line A: context bar + git branch + cwd
-check(b'ctx ' in buf and b'%' in buf, 'context bar (ctx N/M %)')
+check(b'\xe2\xac\xa2' in buf and b'out ' in buf and b'\xe2\x8f\xb1' in buf, 'omp-style status line (⬢ model · tokens · ⏱ elapsed)')
 check(b'git:dashmain' in buf, 'git branch shown')
 check(b'dashgit' in buf, 'cwd shown')
 

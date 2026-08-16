@@ -3,6 +3,11 @@
 # real chat round trip, exit.
 import os, pty, select, time, subprocess, fcntl, termios, struct, sys
 
+# deterministic start: default (en) UI, no leftover config
+for p in (os.path.expanduser('~/.dash/config.yml'), os.path.expanduser('~/.dash/keybindings.yml')):
+    if os.path.exists(p):
+        os.remove(p)
+
 with open('/tmp/dash_ed.sh', 'w') as f:
     f.write('#!/bin/sh\nprintf edited > "$1"\n')
 os.chmod('/tmp/dash_ed.sh', 0o755)

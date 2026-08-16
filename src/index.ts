@@ -249,6 +249,113 @@ interface Colors {
 export const name = 'dash-tui'
 export const inject: string[] = ['agents']
 
+/** UI strings; the active language is `lang` in ~/.dash/config.yml (default en). */
+const STRINGS: Record<string, { en: string; zh: string }> = {
+  // status / notices
+  'role.label': { en: 'role', zh: '角色' },
+  'theme.set': { en: 'theme → ', zh: '主题 → ' },
+  'status.cache': { en: 'cache', zh: '缓存' },
+  'status.unread': { en: ' new (PgDn)', zh: ' 新消息 (PgDn)' },
+  'sticky.prompt': { en: 'current prompt: ', zh: '当前提示词: ' },
+  'boot.mountFailed': { en: 'mount failed', zh: '装载失败' },
+  'ctx.compacting': { en: '🧹 compacting context…', zh: '🧹 上下文压缩中…' },
+  'ctx.compacted': { en: '🧹 compaction complete', zh: '🧹 压缩完成' },
+  'ctx.compactedShort': { en: '🧹 compacted', zh: '🧹 压缩' },
+  'rename.done': { en: 'renamed: ', zh: '已重命名: ' },
+  'init.injected': { en: 'Injected', zh: '已注入' },
+  'init.chars': { en: 'chars', zh: '字符' },
+  'init.none': { en: '(no AGENTS.md in cwd — baseline instructions come from DSH)', zh: '（cwd 无 AGENTS.md；基线指令由 DSH 自动发现）' },
+  'init.steered': { en: 'steered', zh: '已注入' },
+  'skills.none': { en: '(no skills available)', zh: '（无可用技能）' },
+  'cmd.preset': { en: 'agent preset (standard/PTC/minimal/cordis)', zh: 'agent preset (标准/PTC/极简/创造)' },
+  'rewind.none': { en: 'no messages to rewind', zh: '没有可回滚的消息' },
+  'rewind.to': { en: 'rewound to: ', zh: '已回滚到: ' },
+  'resume.deleteOnlyDash': { en: 'only dash-* sessions can be deleted', zh: '仅可删除 dash-* 会话' },
+  'resume.deleted': { en: '🗑 deleted session ', zh: '🗑 已删除会话 ' },
+  'resume.done': { en: 'resumed session ', zh: '已恢复会话 ' },
+  'preset.deferred': { en: ' (takes effect after /new — this session already has messages)', zh: '（当前会话已有对话，/new 后生效）' },
+  'common.current': { en: '(current)', zh: '（当前）' },
+  'tab.hint': { en: 'tab: / opens commands, @ opens file completion', zh: 'tab: 输入 / 开命令菜单，@ 开文件补全' },
+  'esc.again': { en: 'press Esc again for rewind (time travel)', zh: '再次按 Esc 进入时间回溯 (rewind)' },
+  'ttsr.injected': { en: '⚠ rule injected: ', zh: '⚠ 注入规则: ' },
+  'hub.interrupted': { en: '⏹ interrupted subagent ', zh: '⏹ 已中断子代理 ' },
+  'hub.sent': { en: '✉ sent to ', zh: '✉ 已发送给 ' },
+  'hub.empty': { en: '    no subagents (spawn them with the subagent tool)', zh: '    无子代理（用 subagent 工具产生）' },
+  // overlays
+  'preset.title': { en: 'session mode (agent preset)', zh: '会话模式 (agent preset)' },
+  'preset.hint': { en: '↑↓ select · Enter apply · Esc close', zh: '↑↓ 选择 · Enter 应用 · Esc 关闭' },
+  'filemenu.title': { en: '@ file completion', zh: '@ 文件补全' },
+  'filemenu.hint': { en: '↑↓ · Enter insert · Esc cancel', zh: '↑↓ · Enter 插入 · Esc 取消' },
+  'hub.detail': { en: 'subagent detail', zh: '子代理详情' },
+  'hub.title': { en: 'Agent Hub', zh: 'Agent Hub' },
+  'hub.detailHint': { en: 's send · x interrupt · Esc back', zh: 's 发送消息 · x 中断 · Esc 返回' },
+  'hub.detailNote': { en: '    (recent messages in the transcript; s=send x=interrupt)', zh: '    （最近消息见转录；s=发送 x=中断）' },
+  'hub.steer': { en: 'send message to subagent', zh: '发送消息给子代理' },
+  'hub.steerHint': { en: 'Enter send · Esc cancel', zh: 'Enter 发送 · Esc 取消' },
+  'hub.hint': { en: 'j/k · Enter detail · x interrupt · Esc close', zh: 'j/k · Enter 详情 · x 中断 · Esc 关闭' },
+  'picker.title': { en: 'model selector', zh: '模型选择器' },
+  'picker.hint': { en: 'Tab switch · j/k move · Enter drill/select · Esc close', zh: 'Tab 切栏 · j/k 移动 · Enter 下钻/选中 · Esc 关闭' },
+  'picker.roles': { en: 'roles', zh: '角色' },
+  'resume.title': { en: 'resume session', zh: '恢复会话' },
+  'resume.hint': { en: '↑↓ select · Enter resume · d delete(dash-*) · Esc close', zh: '↑↓ 选择 · Enter 恢复 · d 删除(dash-*) · Esc 关闭' },
+  'rewind.title': { en: 'rewind', zh: '时间回溯' },
+  'rewind.hint': { en: '↑↓ select · Enter rewind & resend · Esc cancel', zh: '↑↓ 选择 · Enter 回滚重发 · Esc 取消' },
+  'settings.title': { en: '─ settings ─  (saved to ~/.dash/config.yml)', zh: '─ settings ─  (写入 ~/.dash/config.yml)' },
+  // splash
+  'splash.tip': { en: 'Tip: /help for keys · /settings panel · /preset modes · double-Esc rewind', zh: 'Tip: /help 查看快捷键 · /settings 设置面板 · /preset 切换模式 · 双击 Esc 时间回溯' },
+  'splash.tip1': { en: '/ commands · @ files', zh: '/ 命令菜单 · @ 文件补全' },
+  'splash.tip2': { en: 'double-Esc rewind · Alt+M models', zh: 'Esc Esc 时间回溯 · Alt+M 模型' },
+  'splash.tip3': { en: 'Ctrl+R history · Ctrl+G editor', zh: 'Ctrl+R 历史 · Ctrl+G 外部编辑器' },
+  'splash.loading': { en: 'Loading…', zh: '加载中…' },
+  'splash.noSessions': { en: '(no recent sessions)', zh: '（无历史会话）' },
+  // help
+  'help.esc': { en: 'interrupt · double-Esc rewind', zh: 'interrupt · 时间回溯 rewind' },
+  'help.scroll': { en: 'scroll (sticky prompt + ↓N unread)', zh: 'scroll (置顶提示词栏 + ↓N 未读)' },
+  'help.wheel': { en: 'wheel: scroll · move selection in lists', zh: '滚轮：滚动历史 · 列表中移动选择' },
+  'help.wheelKey': { en: 'Mouse wheel', zh: '滚轮' },
+  'help.at': { en: '@ file completion', zh: '@ 文件补全' },
+  'help.atKey': { en: 'Tab (draft with @)', zh: 'Tab (draft 含 @)' },
+  // settings defs
+  'settings.group.theme': { en: 'Theme', zh: '主题' },
+  'settings.group.display': { en: 'Display', zh: '显示' },
+  'settings.group.thinking': { en: 'Thinking', zh: '思考' },
+  'settings.group.advisor': { en: 'Advisor', zh: '顾问' },
+  'settings.group.input': { en: 'Input', zh: '输入' },
+  'settings.group.notify': { en: 'Notifications', zh: '通知' },
+  'settings.group.startup': { en: 'Startup', zh: '启动' },
+  'settings.lang.label': { en: 'Language', zh: '语言' },
+  'settings.lang.desc': { en: 'Interface language (en/zh)', zh: '界面语言（en/zh）' },
+  'settings.theme.label': { en: 'Theme', zh: '主题' },
+  'settings.theme.desc': { en: 'Light/dark theme (saved to ~/.dash/config.yml)', zh: '浅色/深色主题（写入 ~/.dash/config.yml）' },
+  'settings.colorblind.label': { en: 'Colorblind mode', zh: '色盲模式' },
+  'settings.colorblind.desc': { en: 'Use blue instead of green for accents', zh: '用蓝色替代绿色作为强调色' },
+  'settings.spinner.label': { en: 'Spinner preset', zh: 'spinner 帧' },
+  'settings.spinner.desc': { en: 'Busy-indicator animation preset', zh: '忙碌指示器动画预设' },
+  'settings.thinking.label': { en: 'Default thinking', zh: '默认思考深度' },
+  'settings.thinking.desc': { en: 'Thinking level for new sessions (Shift+Tab cycles)', zh: '新会话的思考级别（Shift+Tab 可循环）' },
+  'settings.hideThinking.label': { en: 'Hide thinking', zh: '隐藏思考块' },
+  'settings.hideThinking.desc': { en: "Don't expand thinking while streaming (Ctrl+T toggles)", zh: '流式输出时不展开思考（Ctrl+T 切换）' },
+  'settings.advisor.label': { en: 'Advisor notes', zh: 'advisor 点评' },
+  'settings.advisor.desc': { en: 'Second model reviews every completed turn (/advisor)', zh: '每回合结束后由第二模型给出简短点评（/advisor）' },
+  'settings.dblEsc.label': { en: 'Double-Esc', zh: '双击 Esc' },
+  'settings.dblEsc.desc': { en: 'Idle double-Esc behavior (tree=fork-replay rewind, none=off)', zh: '空闲时双击 Esc 的行为（tree=时间回溯 fork 重放，none=禁用）' },
+  'settings.followup.label': { en: 'Queue delivery', zh: '排队投递' },
+  'settings.followup.desc': { en: 'How queued messages are delivered while streaming (all=merge into one)', zh: '流式期间排队消息的投递方式（all=合并为一条）' },
+  'settings.bell.label': { en: 'Turn-end bell', zh: '回合结束铃' },
+  'settings.bell.desc': { en: 'Ring the terminal bell when a turn ends', zh: '回合结束时终端响铃提醒' },
+  'settings.quiet.label': { en: 'Quiet startup', zh: '静默启动' },
+  'settings.quiet.desc': { en: 'Skip the banner on startup', zh: '启动时不显示横幅提示' },
+  'settings.autoResume.label': { en: 'Auto-resume', zh: '自动恢复' },
+  'settings.autoResume.desc': { en: 'Resume the most recent dash-* session on startup', zh: '启动时自动恢复最近的 dash-* 会话' },
+  'settings.preset.label': { en: 'Session mode', zh: '会话模式' },
+  'settings.preset.desc': { en: 'Agent preset: standard / PTC / minimal / cordis (minimal = bash + str_replace_editor only)', zh: 'agent preset：standard 标准 / code PTC / minimal 极简 / cordis 创造（minimal 仅 bash + str_replace_editor 双工具）' },
+  // relative time
+  'time.justNow': { en: 'just now', zh: '刚刚' },
+  'time.minAgo': { en: 'min ago', zh: '分钟前' },
+  'time.hrAgo': { en: 'hr ago', zh: '小时前' },
+  'time.dAgo': { en: 'd ago', zh: '天前' },
+}
+
 export interface DashConfig {
   provider?: string
   model?: string
@@ -261,6 +368,9 @@ function emsg(e: unknown): string {
 }
 
 export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<void>) | undefined {
+  let lang: 'en' | 'zh' = getCfg(loadConfig(), 'lang', 'en') === 'zh' ? 'zh' : 'en'
+  const tr = (key: string): string => (STRINGS[key] && STRINGS[key][lang]) || key
+  const cfg = loadConfig()
   const llm: LlmRuntime | undefined = ctx.get('llm')
   const adm: AgentDefaultModelService | undefined = ctx.get('agentDefaultModel')
   const commands: CommandsService | undefined = ctx.get('commands')
@@ -323,8 +433,6 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     return w >= width ? s : s + ' '.repeat(width - w)
   }
 
-  const cfg = loadConfig()
-
   // ── theme ────────────────────────────────────────────────────────────────
   const THEMES: Record<string, { name: string; fg: number; dim: number; accent: number; green: number; blue: number; yellow: number; amber: number; red: number; purple: number; cyan: number }> = {
     dark: { name: 'dark', fg: 254, dim: 245, accent: 78, green: 121, blue: 117, yellow: 222, amber: 229, red: 203, purple: 141, cyan: 81 },
@@ -384,6 +492,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   let lastTurnFailed = false
   let turnTools = 0
   let turnStartedAt = 0
+  let sessionStartAt = 0
   let sessionTitle = ''
   let rewind: RewindState | null = null
   let lastEscAt = 0
@@ -440,7 +549,9 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   }
   const spinnerName = (cfg.activity && cfg.activity.frames) || 'claude'
   let spinner = SPINNERS[spinnerName] || SPINNERS.claude
-  const thinkPhrases: string[] = ['嗯…让我捋捋', '想想怎么回', '组织一下语言', '分析中…', '深度思考中']
+  const thinkPhrases = (): string[] => (lang === 'zh'
+    ? ['嗯…让我捋捋', '想想怎么回', '组织一下语言', '分析中…', '深度思考中']
+    : ['Hmm…', 'Thinking…', 'Reasoning…', 'Working on it…', 'Deep thinking…'])
   const selection: ModelSelectionRef = { current: undefined, assembled: undefined }
 
   function setStatus(text: string, color?: string | null): void {
@@ -493,7 +604,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         try {
           await mountPreset(agentCtx, preset)
         } catch (e) {
-          rows.push({ kind: 'notice', text: '✗ preset ' + preset.id + ' 装载失败: ' + emsg(e) })
+          rows.push({ kind: 'notice', text: '✗ preset ' + preset.id + ' ' + tr('boot.mountFailed') + ': ' + emsg(e) })
         }
       }
     }
@@ -548,6 +659,8 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     }
     if (!created || !handle) throw new Error('agent factory never became available')
     agent = handle.agent
+    loadWelcomeSessions(true)
+    sessionStartAt = Date.now()
     selection.current = { provider, model }
     const dtl = getCfg(cfg, 'defaultThinkingLevel', 'auto')
     if (dtl && dtl !== 'auto' && llm) {
@@ -724,7 +837,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         break
       default:
         if (typeof event.type === 'string' && event.type.startsWith('compaction/')) {
-          rows.push({ kind: 'notice', text: event.type === 'compaction/start' ? '🧹 上下文压缩中…' : '🧹 压缩完成' })
+          rows.push({ kind: 'notice', text: event.type === 'compaction/start' ? tr('ctx.compacting') : tr('ctx.compacted') })
           dirty = true
         }
         break
@@ -749,23 +862,6 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M'
     if (v >= 1e3) return (v / 1e3).toFixed(1) + 'k'
     return String(v)
-  }
-
-  function contextBar(width: number): string {
-    const total = usage.in + usage.out
-    const cap = contextWindow || 1000000
-    const pct = cap ? Math.min(100, (total / cap) * 100) : 0
-    const W = Math.max(6, width)
-    const segIn = Math.round((usage.in / cap) * W)
-    const segThink = Math.round((reasoningTotal / cap) * W)
-    const segOut = Math.round(((usage.out - reasoningTotal) / cap) * W)
-    let s = ''
-    let used = 0
-    if (segIn > 0) { s += C.blue + '█'.repeat(Math.min(segIn, W)) + C.reset; used = segIn }
-    if (segThink > 0 && used < W) { s += C.purple + '█'.repeat(Math.min(segThink, W - used)) + C.reset; used += Math.min(segThink, W - used) }
-    if (segOut > 0 && used < W) { s += C.green + '█'.repeat(Math.min(segOut, W - used)) + C.reset; used += Math.min(segOut, W - used) }
-    if (used < W) s += C.dim + '░'.repeat(W - used) + C.reset
-    return '▏' + s + '▕ ' + C.dim + 'ctx ' + fmtTokens(total) + '/' + fmtTokens(cap) + ' ' + pct.toFixed(1) + '%' + C.reset
   }
 
   function sparkline(): string {
@@ -911,7 +1007,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (r.reasoningEffort) sel.reasoningEffort = r.reasoningEffort
     selection.current = sel
     displayModel = { provider: r.provider, model: r.model }
-    setStatus('角色 → ' + name + ' · ' + r.provider + '/' + r.model, C.green)
+    setStatus(tr('role.label') + ' → ' + name + ' · ' + r.provider + '/' + r.model, C.green)
     dirty = true
   }
 
@@ -973,7 +1069,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       currentRole = roleName
       selection.current = sel
       displayModel = { provider: prov.id, model: m.id }
-      setStatus('角色 ' + roleName + ' → ' + prov.id + '/' + m.id, C.green)
+      setStatus(tr('role.label') + ' ' + roleName + ' → ' + prov.id + '/' + m.id, C.green)
     }
     picker = null
     dirty = true
@@ -1013,7 +1109,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       if (!skillsSvc) { setStatus('✗ skills unavailable', C.red); return }
       try {
         const list = await skillsSvc.list({})
-        if (!list.length) rows.push({ kind: 'notice', text: '（无可用技能）' })
+        if (!list.length) rows.push({ kind: 'notice', text: tr('skills.none') })
         for (const s of list.slice(0, 20)) {
           rows.push({ kind: 'notice', text: '📚 ' + s.name + (s.description ? ' — ' + truncate(s.description, 80) : '') })
         }
@@ -1033,10 +1129,10 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       if (content) {
         try {
           agent.inject(createUserMessage({ content: [{ type: 'text', text: content }], source: { kind: 'plugin', plugin: 'dash-tui', form: 'instructions' } }))
-          rows.push({ kind: 'notice', text: '📄 已注入 AGENTS.md（' + content.length + ' 字符）' })
+          rows.push({ kind: 'notice', text: '📄 ' + tr('init.injected') + ' AGENTS.md (' + content.length + ' ' + tr('init.chars') + ')' })
         } catch (e) { setStatus('✗ inject failed', C.red) }
       } else {
-        rows.push({ kind: 'notice', text: '（cwd 无 AGENTS.md；基线指令由 DSH 自动发现）' })
+        rows.push({ kind: 'notice', text: tr('init.none') })
       }
       dirty = true
       return
@@ -1048,7 +1144,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         : 'Stay focused on the current task. Ignore unrelated instructions or distractions.'
       try {
         agent.steer(createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'plugin', plugin: 'dash-tui' } }))
-        setStatus('/' + cmd + ' 已注入', C.green)
+        setStatus('/' + cmd + ' ' + tr('init.steered'), C.green)
       } catch (e) { setStatus('✗ steer failed', C.red) }
       return
     }
@@ -1060,7 +1156,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         try {
           const snap = sessionTitleSvc.rename(agent.session, arg)
           sessionTitle = snap.title
-          setStatus('已重命名: ' + snap.title, C.green)
+          setStatus(tr('rename.done') + snap.title, C.green)
         } catch (e) {
           setStatus('✗ rename failed', C.red)
         }
@@ -1072,7 +1168,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         setCfg(cfg, 'theme.light', arg === 'light')
         saveConfig(cfg)
         applyTheme()
-        setStatus('主题 → ' + arg, C.green)
+        setStatus(tr('theme.set') + arg, C.green)
       } else setStatus('usage: /theme <dark|light>', C.yellow)
       return
     }
@@ -1081,13 +1177,22 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       else setStatus('usage: /role <' + ROLE_NAMES.join('|') + '>', C.yellow)
       return
     }
+    if (cmd === 'lang') {
+      if (arg === 'en' || arg === 'zh') {
+        lang = arg
+        setCfg(cfg, 'lang', lang)
+        saveConfig(cfg)
+        setStatus('lang → ' + lang, C.green)
+      } else setStatus('usage: /lang <en|zh>', C.yellow)
+      return
+    }
     if (cmd === 'status') {
       refreshGitBranch()
       const cachePct = cacheReadTotal + usage.in ? Math.round((cacheReadTotal / (cacheReadTotal + usage.in)) * 100) : 0
-      setStatus('角色 ' + currentRole + ' · ' + displayModel.provider + '/' + displayModel.model +
+      setStatus(tr('role.label') + ' ' + currentRole + ' · ' + displayModel.provider + '/' + displayModel.model +
         ' · in ' + usage.in + ' · out ' + usage.out +
         (reasoningTotal ? ' · think ' + reasoningTotal : '') +
-        (cacheReadTotal ? ' · 缓存 ' + cachePct + '%' : '') +
+        (cacheReadTotal ? ' · ' + tr('status.cache') + ' ' + cachePct + '%' : '') +
         (contextWindow ? ' · ctx ' + fmtTokens(usage.in + usage.out) + '/' + fmtTokens(contextWindow) : '') +
         (gitBranch ? ' · git:' + gitBranch : ''), C.green)
       return
@@ -1181,13 +1286,14 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     ['/init', 'inject AGENTS.md'],
     ['/think /focus', 'steer reasoning / focus'],
     ['/model <p>/<m>', 'set model'],
-    ['/preset', 'agent preset (标准/PTC/极简/创造)'],
+    ['/preset', tr('cmd.preset')],
     ['/plan', 'toggle plan mode'],
     ['/goal', 'goal commands (registry)'],
     ['/compact', 'compact context (registry)'],
     ['/rename <t>', 'rename this session'],
     ['/settings', 'settings panel'],
     ['/theme <dark|light>', 'switch theme'],
+    ['/lang <en|zh>', 'switch UI language'],
     ['/status', 'session status'],
     ['/hotkeys', 'show active keybindings'],
     ['/exit', 'quit DASH'],
@@ -1274,8 +1380,27 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (parser.partialEscape) armEscTimer()
   }
 
-  function onKeyEvent(ev: KeyEvent): void {
-    if (ev.key === 'paste-start') { pasteBuf = ''; return }
+  /** Wheel routing: open overlays move their selection; the transcript scrolls. */
+  function wheelScroll(delta: number): void {
+    if (settingsPick) {
+      settingsPick.sectionFocus = false
+      settingsMove(delta)
+      dirty = true
+      return
+    }
+    const ev: KeyEvent = { key: delta > 0 ? 'down' : 'up', char: null, ctrl: false, alt: false, shift: false, meta: false }
+    if (hub) { hubKeys(ev); return }
+    if (picker) { pickerKeys(ev); return }
+    if (resumePick) { resumeKeys(ev); return }
+    if (presetPick) { presetKeys(ev); return }
+    if (fileMenu) { fileMenuKeys(ev); return }
+    if (rewind) { rewindKeys(ev); return }
+    if (histSearch) { histKeys(ev); return }
+    if (cmdMenu) { menuKeys(ev); return }
+    scrollBy(delta * 3)
+  }
+
+  function onKeyEvent(ev: KeyEvent): void {    if (ev.key === 'paste-start') { pasteBuf = ''; return }
     if (ev.key === 'paste-end') {
       if (pasteBuf !== null) draft.insert(pasteBuf)
       pasteBuf = null
@@ -1284,6 +1409,15 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     }
     if (ev.key === 'kitty-response') {
       kittyMode = /^1/.test(ev.flags || '')
+      return
+    }
+    // SGR mouse: wheel up/down scrolls the transcript or moves overlay selection
+    if (ev.key === 'mouse') {
+      if (!ev.pressed || ev.button == null) return
+      const base = ev.button & 67   // wheel/button code, modifier bits (4/8/16/32) stripped
+      const mods = ev.button & 60   // shift/meta/ctrl/alt
+      if (base === 64 && !mods) wheelScroll(1)
+      else if (base === 65 && !mods) wheelScroll(-1)
       return
     }
     if (pasteBuf !== null) {
@@ -1464,7 +1598,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       const r = rows[i]
       if (r.kind === 'user' && r.seq != null) userRows.push(r)
     }
-    if (!userRows.length) { setStatus('没有可回滚的消息', C.yellow); return }
+    if (!userRows.length) { setStatus(tr('rewind.none'), C.yellow); return }
     rewind = { q: '', matches: userRows, idx: 0 }
     dirty = true
   }
@@ -1517,7 +1651,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       } else if (e.type === 'tool/call') {
         rows.push({ kind: 'tool', callId: e.data.callId, name: e.data.name, args: e.data.arguments, status: 'ok', summary: null, error: null })
       } else if (e.type === 'compaction/start') {
-        rows.push({ kind: 'notice', text: '🧹 压缩' })
+        rows.push({ kind: 'notice', text: tr('ctx.compactedShort') })
       }
     }
   }
@@ -1568,7 +1702,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     draft.cursor = draft.text.length
     draft.undoStack = []
     rewind = null
-    setStatus('已回滚到: ' + truncate(row.text, 40), C.green)
+    setStatus(tr('rewind.to') + truncate(row.text, 40), C.green)
     dirty = true
   }
 
@@ -1638,7 +1772,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       if (it && it.id.startsWith('dash-')) {
         deleteSession(it.id)
       } else {
-        setStatus('仅可删除 dash-* 会话', C.yellow)
+        setStatus(tr('resume.deleteOnlyDash'), C.yellow)
       }
       return
     }
@@ -1666,7 +1800,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         const loc = sessionPersistence.locate(h)
         if (loc && loc.path && fs.existsSync(loc.path)) {
           fs.rmSync(loc.path, { recursive: true, force: true })
-          rows.push({ kind: 'notice', text: '🗑 已删除会话 ' + id })
+          rows.push({ kind: 'notice', text: tr('resume.deleted') + id })
         }
       }
     } catch (e) { /* ignore */ }
@@ -1709,7 +1843,8 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       } catch (e) { /* ignore */ }
     }
     usage = { in: 0, out: 0 }
-    setStatus('已恢复会话 ' + id, C.green)
+    sessionStartAt = Date.now()
+    setStatus(tr('resume.done') + id, C.green)
     dirty = true
   }
 
@@ -1771,7 +1906,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   function presetLines(): string[] {
     if (!presetPick) return []
     const lines: string[] = []
-    lines.push(C.bright + '  ─ 会话模式 (agent preset): ' + C.reset + C.green + presetPick.q + C.reset + C.bright + ' ─ (↑↓ 选择 · Enter 应用 · Esc 关闭)' + C.reset)
+    lines.push(C.bright + '  ─ ' + tr('preset.title') + ': ' + C.reset + C.green + presetPick.q + C.reset + C.bright + ' ─ (' + tr('preset.hint') + ')' + C.reset)
     lines.push('')
     const list = presetPickFiltered()
     const idx = presetPick.idx
@@ -1779,7 +1914,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       lines.push(C.dim + '    no presets' + C.reset)
     } else {
       list.forEach((p, i) => {
-        const cur = (presetId || 'standard') === p.id ? C.dim + '  (当前)' + C.reset : ''
+        const cur = (presetId || 'standard') === p.id ? C.dim + '  ' + tr('common.current') + C.reset : ''
         const mark = i === idx ? C.green + '  › ' : '    '
         lines.push(mark + (p.name || p.id) + C.dim + '  ' + p.id + C.reset + cur)
         if (p.description) lines.push(C.dim + '      ' + p.description + C.reset)
@@ -1812,7 +1947,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       })()
       setStatus('preset → ' + id, C.green)
     } else {
-      setStatus(blank ? 'preset → ' + id : 'preset → ' + id + '（当前会话已有对话，/new 后生效）', blank ? C.green : C.yellow)
+      setStatus(blank ? 'preset → ' + id : 'preset → ' + id + tr('preset.deferred'), blank ? C.green : C.yellow)
     }
     dirty = true
   }
@@ -1838,25 +1973,29 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         label: 'appearance',
         groups: [
           {
-            name: '主题',
+            name: tr('settings.group.theme'),
             items: [
-              def('theme.light', '主题', '浅色/深色主题（写入 ~/.dash/config.yml）', ['dark', 'light'],
+              def('theme.light', tr('settings.theme.label'), tr('settings.theme.desc'), ['dark', 'light'],
                 () => (getCfg(cfg, 'theme.light', false) ? 'light' : 'dark'),
                 (v) => { setCfg(cfg, 'theme.light', v === 'light'); saveConfig(cfg); applyTheme() },
                 () => !!getCfg(cfg, 'theme.light', false)),
-              def('colorBlindMode', '色盲模式', '用蓝色替代绿色作为强调色', BOOL_VALS,
+              def('colorBlindMode', tr('settings.colorblind.label'), tr('settings.colorblind.desc'), BOOL_VALS,
                 () => (cfg.colorBlindMode ? 'on' : 'off'),
                 (v) => { setCfg(cfg, 'colorBlindMode', v === 'on'); saveConfig(cfg); applyTheme() },
                 () => !!cfg.colorBlindMode),
             ],
           },
           {
-            name: '显示',
+            name: tr('settings.group.display'),
             items: [
-              def('activity.frames', 'spinner 帧', '忙碌指示器动画预设', ['claude', 'dots', 'moon', 'arrows', 'line'],
+              def('activity.frames', tr('settings.spinner.label'), tr('settings.spinner.desc'), ['claude', 'dots', 'moon', 'arrows', 'line'],
                 () => (cfg.activity && cfg.activity.frames) || 'claude',
                 (v) => { setCfg(cfg, 'activity.frames', v); saveConfig(cfg); spinner = SPINNERS[v] || SPINNERS.claude },
                 () => !!(cfg.activity && cfg.activity.frames)),
+              def('lang', tr('settings.lang.label'), tr('settings.lang.desc'), ['en', 'zh'],
+                () => lang,
+                (v) => { lang = v === 'zh' ? 'zh' : 'en'; setCfg(cfg, 'lang', lang); saveConfig(cfg) },
+                () => lang !== 'en'),
             ],
           },
         ],
@@ -1866,9 +2005,9 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         label: 'model',
         groups: [
           {
-            name: '思考',
+            name: tr('settings.group.thinking'),
             items: [
-              def('defaultThinkingLevel', '默认思考深度', '新会话的思考级别（Shift+Tab 可循环）', ['auto', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'],
+              def('defaultThinkingLevel', tr('settings.thinking.label'), tr('settings.thinking.desc'), ['auto', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'],
                 () => String(getCfg(cfg, 'defaultThinkingLevel', 'auto') || 'auto'),
                 (v) => {
                   setCfg(cfg, 'defaultThinkingLevel', v)
@@ -1879,16 +2018,16 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
                   }
                 },
                 () => !!getCfg(cfg, 'defaultThinkingLevel', null)),
-              def('hideThinkingBlock', '隐藏思考块', '流式输出时不展开思考（Ctrl+T 切换）', BOOL_VALS,
+              def('hideThinkingBlock', tr('settings.hideThinking.label'), tr('settings.hideThinking.desc'), BOOL_VALS,
                 () => (showReasoning ? 'off' : 'on'),
                 (v) => { setCfg(cfg, 'hideThinkingBlock', v === 'on'); saveConfig(cfg); showReasoning = v === 'off' },
                 () => !!getCfg(cfg, 'hideThinkingBlock', false)),
             ],
           },
           {
-            name: '顾问',
+            name: tr('settings.group.advisor'),
             items: [
-              def('advisor.enabled', 'advisor 点评', '每回合结束后由第二模型给出简短点评（/advisor）', BOOL_VALS,
+              def('advisor.enabled', tr('settings.advisor.label'), tr('settings.advisor.desc'), BOOL_VALS,
                 () => (advisorEnabled ? 'on' : 'off'),
                 (v) => { advisorEnabled = v === 'on'; setCfg(cfg, 'advisor.enabled', advisorEnabled); saveConfig(cfg) },
                 () => advisorEnabled),
@@ -1901,35 +2040,35 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         label: 'interaction',
         groups: [
           {
-            name: '输入',
+            name: tr('settings.group.input'),
             items: [
-              def('doubleEscapeAction', '双击 Esc', '空闲时双击 Esc 的行为（tree=时间回溯 fork 重放，none=禁用）', ['tree', 'branch', 'none'],
+              def('doubleEscapeAction', tr('settings.dblEsc.label'), tr('settings.dblEsc.desc'), ['tree', 'branch', 'none'],
                 () => String(getCfg(cfg, 'doubleEscapeAction', 'tree') || 'tree'),
                 (v) => { rewindEnabled = v !== 'none'; setCfg(cfg, 'doubleEscapeAction', v); saveConfig(cfg) },
                 () => !!getCfg(cfg, 'doubleEscapeAction', null)),
-              def('followUpMode', '排队投递', '流式期间排队消息的投递方式（all=合并为一条）', ['one-at-a-time', 'all'],
+              def('followUpMode', tr('settings.followup.label'), tr('settings.followup.desc'), ['one-at-a-time', 'all'],
                 () => (followUpAll ? 'all' : 'one-at-a-time'),
                 (v) => { followUpAll = v === 'all'; setCfg(cfg, 'followUpMode', v); saveConfig(cfg) },
                 () => !!getCfg(cfg, 'followUpMode', null)),
             ],
           },
           {
-            name: '通知',
+            name: tr('settings.group.notify'),
             items: [
-              def('notify.turnEnd', '回合结束铃', '回合结束时终端响铃提醒', BOOL_VALS,
+              def('notify.turnEnd', tr('settings.bell.label'), tr('settings.bell.desc'), BOOL_VALS,
                 () => (getCfg(cfg, 'notify.turnEnd', true) === false ? 'off' : 'on'),
                 (v) => { setCfg(cfg, 'notify.turnEnd', v === 'on'); saveConfig(cfg) },
                 () => getCfg(cfg, 'notify.turnEnd', true) === false),
             ],
           },
           {
-            name: '启动',
+            name: tr('settings.group.startup'),
             items: [
-              def('startup.quiet', '静默启动', '启动时不显示横幅提示', BOOL_VALS,
+              def('startup.quiet', tr('settings.quiet.label'), tr('settings.quiet.desc'), BOOL_VALS,
                 () => (getCfg(cfg, 'startup.quiet', false) ? 'on' : 'off'),
                 (v) => { setCfg(cfg, 'startup.quiet', v === 'on'); saveConfig(cfg) },
                 () => !!getCfg(cfg, 'startup.quiet', false)),
-              def('autoResume', '自动恢复', '启动时自动恢复最近的 dash-* 会话', BOOL_VALS,
+              def('autoResume', tr('settings.autoResume.label'), tr('settings.autoResume.desc'), BOOL_VALS,
                 () => (getCfg(cfg, 'autoResume', false) ? 'on' : 'off'),
                 (v) => { setCfg(cfg, 'autoResume', v === 'on'); saveConfig(cfg) },
                 () => !!getCfg(cfg, 'autoResume', false)),
@@ -1944,7 +2083,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
           {
             name: 'Agent',
             items: [
-              def('preset.id', '会话模式', 'agent preset：standard 标准 / code PTC / minimal 极简 / cordis 创造（minimal 仅 bash + str_replace_editor 双工具）', presetVals,
+              def('preset.id', tr('settings.preset.label'), tr('settings.preset.desc'), presetVals,
                 () => {
                   const cur = presetId || 'standard'
                   const p = presets.find((x) => x.id === cur)
@@ -2118,7 +2257,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     s.listRows = listRows
     const lines: string[] = []
     // title
-    lines.push(C.bright + '  ─ settings ─  (写入 ~/.dash/config.yml)' + C.reset)
+    lines.push(C.bright + '  ─ ' + tr('settings.title') + C.reset)
     // tab bar
     lines.push('  ' + tabs.map((tb, i) => (i === s.tab ? C.green + tb.label + C.reset : C.dim + tb.label + C.reset)).join(' · '))
     // search banner
@@ -2204,6 +2343,117 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     return lines
   }
 
+  // ── welcome splash (omp-style startup screen) ───────────────────────────
+  let welcomeSessions: Array<{ id: string; time: number }> | null = null
+  let welcomeTitles: Record<string, string> = {}
+
+  function welcomeVisible(): boolean {
+    // welcome screen only while the transcript is empty (or holds just the boot banner)
+    return rows.length === 0 || (rows.length === 1 && rows[0].kind === 'notice')
+  }
+
+  function relTime(ts: number): string {
+    const d = Date.now() - ts
+    if (d < 60000) return tr('time.justNow')
+    if (d < 3600000) return Math.floor(d / 60000) + ' ' + tr('time.minAgo')
+    if (d < 86400000) return Math.floor(d / 3600000) + ' ' + tr('time.hrAgo')
+    return Math.floor(d / 86400000) + ' ' + tr('time.dAgo')
+  }
+
+  function loadWelcomeSessions(force = false): void {
+    if (welcomeSessions && !force) return
+    welcomeSessions = null
+    const sp: SessionPersistenceService | undefined = ctx.get('sessionPersistence')
+    const sq: SessionQueryService | undefined = ctx.get('sessionQuery')
+    void (async () => {
+      try {
+        if (!sp) { welcomeSessions = []; return }
+        const headers = await sp.list()
+        const withTime: Array<{ id: string; time: number }> = []
+        for (const h of headers) {
+          if (!h.id.startsWith('dash-')) continue
+          let t = h.createdAt || 0
+          try {
+            const loc = sp.locate(h)
+            if (loc && loc.path) t = fs.statSync(loc.path).mtimeMs
+          } catch (e) { /* keep createdAt */ }
+          withTime.push({ id: h.id, time: t })
+        }
+        withTime.sort((a, b) => b.time - a.time)
+        welcomeSessions = withTime.slice(0, 4)
+        if (sq) {
+          await Promise.all(welcomeSessions.map(async (s) => {
+            try {
+              const t = await sq.readTitle(s.id)
+              if (t && t.title) welcomeTitles[s.id] = t.title
+            } catch (e) { /* ignore */ }
+          }))
+        }
+        dirty = true
+      } catch (e) { welcomeSessions = [] }
+    })()
+  }
+
+  // heavy block DASH wordmark: sharp angles, no rounded glyphs
+  const DASH_LOGO = [
+    '█▀▀▀▀▀▀█  ▄▀▀▀▀▀▀▄  █▀▀▀▀▀▀▄  █▀▀▀▀▀▀█',
+    '█      █  █      █  █      █  █      █',
+    '█      █  █      █  █      █  █      █',
+    '█▄▄▄▄▄▄█  ▀▄▄▄▄▄▄▀  █▄▄▄▄▄▄▀  █▄▄▄▄▄▄█',
+  ]
+  const ansiRe = /\x1b\[[0-9;]*m/g
+  const plainW = (s: string) => strWidth(s.replace(ansiRe, ''))
+  const cell = (s: string, w: number) => s + C.reset + ' '.repeat(Math.max(0, w - plainW(s)))
+
+  function splashLines(): string[] {
+    const lines: string[] = []
+    const boxW = Math.max(64, W - 2)
+    const leftW = 35
+    const rightW = boxW - leftW - 4
+    const sepCol = leftW + 2
+    const D = C.dim
+    const row = (l: string, r: string) => D + '│' + C.reset + cell(l, leftW) + D + '│ ' + C.reset + cell(r, rightW) + D + '│' + C.reset
+    const presetName = () => {
+      const cur = presetId || 'standard'
+      const p = presets.find((x) => x.id === cur)
+      if (lang === 'zh') return p ? (p.name || p.id) : cur
+      return { standard: 'Standard', code: 'PTC', minimal: 'Minimal', cordis: 'Cordis' }[cur] || cur
+    }
+    lines.push(D + '┌───' + 'DASH v0.2.0' + '─'.repeat(Math.max(0, sepCol - 'DASH v0.2.0'.length - 5)) + '┬' + '─'.repeat(Math.max(1, boxW - sepCol - 1)) + '┐' + C.reset)
+    // left panel: welcome + DASH wordmark + model
+    lines.push(row('      ' + C.bright + 'Welcome back!' + C.reset, ''))
+    lines.push(row('', ''))
+    for (const lg of DASH_LOGO) lines.push(row(C.yellow + lg + C.reset, ''))
+    lines.push(row('', ''))
+    const modelTxt = displayModel.model ? displayModel.model : '—'
+    lines.push(row(' ' + C.bright + truncate(modelTxt, 21) + C.reset, ''))
+    lines.push(row('       ' + C.dim + truncate(displayModel.provider || '', 17) + C.reset, ''))
+    lines.push(row('', ''))
+    // right panel: tips + agent preset + recent sessions
+    lines.push(row('', D + ' Tips' + C.reset))
+    const tips = [tr('splash.tip1'), tr('splash.tip2'), tr('splash.tip3')]
+    for (const t of tips) lines.push(row('', D + ' ' + t + C.reset))
+    lines.push(row('', D + ' ' + '─'.repeat(Math.min(rightW - 2, 30)) + C.reset))
+    lines.push(row('', D + ' Agent preset' + C.reset))
+    lines.push(row('', D + ' ' + presetName() + C.dim + ' (' + (presetId || 'standard') + ')' + C.reset))
+    lines.push(row('', D + ' ' + '─'.repeat(Math.min(rightW - 2, 30)) + C.reset))
+    lines.push(row('', D + ' Recent sessions' + C.reset))
+    if (!welcomeSessions) {
+      lines.push(row('', D + '   ' + tr('splash.loading') + C.reset))
+    } else {
+      const list = welcomeSessions.filter((s) => s.id !== (agent && agent.id)).slice(0, 4)
+      if (!list.length) lines.push(row('', D + '   ' + tr('splash.noSessions') + C.reset))
+      else for (const s of list) {
+        const t = welcomeTitles[s.id] || s.id.slice(0, 24)
+        lines.push(row('', ' • ' + truncate(t, Math.max(8, rightW - 14)) + D + ' (' + relTime(s.time) + ')' + C.reset))
+      }
+    }
+    lines.push(row('', ''))
+    lines.push(D + '└' + '─'.repeat(Math.max(1, sepCol - 2)) + '┴' + '─'.repeat(Math.max(1, boxW - sepCol - 1)) + '┘' + C.reset)
+    lines.push(D + ' ' + tr('splash.tip') + C.reset)
+    return lines
+  }
+
   // ── @ file completion ────────────────────────────────────────────────────
   let fileMenu: FileMenuState | null = null
 
@@ -2270,7 +2520,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (!fileMenu) return []
     const idx = fileMenu.idx
     const lines: string[] = []
-    lines.push(C.bright + '  ─ @ 文件补全: ' + C.reset + C.green + (fileMenu.dir + fileMenu.base) + C.reset + C.bright + ' ─ (↑↓ · Enter 插入 · Esc 取消)' + C.reset)
+    lines.push(C.bright + '  ─ ' + tr('filemenu.title') + ': ' + C.reset + C.green + (fileMenu.dir + fileMenu.base) + C.reset + C.bright + ' ─ (' + tr('filemenu.hint') + ')' + C.reset)
     lines.push('')
     fileMenu.entries.forEach((e, i) => {
       lines.push((i === idx ? C.green + '  › ' : '    ') + e + C.reset)
@@ -2366,7 +2616,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (!subs || !agent) return
     try {
       subs.interrupt(id, { kind: 'ancestor', agent })
-      rows.push({ kind: 'notice', text: '⏹ 已中断子代理 ' + id.slice(0, 12) })
+      rows.push({ kind: 'notice', text: tr('hub.interrupted') + id.slice(0, 12) })
     } catch (e) {
       setStatus('✗ interrupt: ' + emsg(e), C.red)
     }
@@ -2380,7 +2630,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       const source: MessageSource = { kind: 'user' }
       const msg = createUserMessage({ content: [{ type: 'text', text }], source })
       await subs.followup(agent, id, msg.content, { source, signal: AbortSignal.timeout(15000) })
-      rows.push({ kind: 'notice', text: '✉ 已发送给 ' + id.slice(0, 12) + ': ' + truncate(text, 40) })
+      rows.push({ kind: 'notice', text: tr('hub.sent') + id.slice(0, 12) + ': ' + truncate(text, 40) })
     } catch (e) {
       setStatus('✗ steer: ' + emsg(e), C.red)
     }
@@ -2391,24 +2641,24 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (!hub) return []
     const lines: string[] = []
     if (hub.view === 'detail') {
-      lines.push(C.bright + '  ─ 子代理详情: ' + C.reset + C.green + (hub.detailId || '') + C.reset + C.bright + ' ─ (s 发送消息 · x 中断 · Esc 返回)' + C.reset)
+      lines.push(C.bright + '  ─ ' + tr('hub.detail') + ': ' + C.reset + C.green + (hub.detailId || '') + C.reset + C.bright + ' ─ (' + tr('hub.detailHint') + ')' + C.reset)
       lines.push('')
       const list = hubFiltered()
       const detailId = hub.detailId
       const e = list.find((x) => x.id === detailId) || hubEntries.find((x) => x.id === detailId)
       if (e) lines.push(C.dim + '    ' + e.label + ' · ' + e.mode + ' · ' + e.activity + C.reset)
-      lines.push(C.dim + '    （最近消息见转录；s=发送 x=中断）' + C.reset)
+      lines.push(C.dim + tr('hub.detailNote') + C.reset)
       return lines
     }
     if (hub.view === 'steer') {
-      lines.push(C.bright + '  ─ 发送消息给子代理: ' + C.reset + C.green + hubSteerText + '▌' + C.reset + C.bright + ' ─ (Enter 发送 · Esc 取消)' + C.reset)
+      lines.push(C.bright + '  ─ ' + tr('hub.steer') + ': ' + C.reset + C.green + hubSteerText + '▌' + C.reset + C.bright + ' ─ (' + tr('hub.steerHint') + ')' + C.reset)
       return lines
     }
-    lines.push(C.bright + '  ─ Agent Hub: ' + C.reset + C.green + hub.q + C.reset + C.bright + ' ─ (j/k · Enter 详情 · x 中断 · Esc 关闭)' + C.reset)
+    lines.push(C.bright + '  ─ ' + tr('hub.title') + ': ' + C.reset + C.green + hub.q + C.reset + C.bright + ' ─ (' + tr('hub.hint') + ')' + C.reset)
     lines.push('')
     const list = hubFiltered()
     if (!list.length) {
-      lines.push(C.dim + '    无子代理（用 subagent 工具产生）' + C.reset)
+      lines.push(C.dim + tr('hub.empty') + C.reset)
     } else {
       const idx = hub.idx
       list.forEach((e, i) => {
@@ -2428,7 +2678,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       if (injectedRules.has(r.name)) continue
       if (r.re.test(streamText)) {
         injectedRules.add(r.name)
-        rows.push({ kind: 'notice', text: '⚠ 注入规则: ' + r.name })
+        rows.push({ kind: 'notice', text: tr('ttsr.injected') + r.name })
         try {
           agent.steer(createUserMessage({ content: [{ type: 'text', text: r.message }], source: { kind: 'plugin', plugin: 'dash-tui' } }))
         } catch (e) { /* ignore */ }
@@ -2450,7 +2700,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       if (u && a) break
     }
     if (!u || !a) return
-    const system = 'You are the DASH advisor. Read the user prompt and the assistant reply, then give ONE concise note (under 60 words, Chinese or English) pointing out anything the assistant missed, got wrong, or could improve. Prefix with "advisor: ".'
+    const system = 'You are the DASH advisor. Read the user prompt and the assistant reply, then give ONE concise note (under 60 words, in ' + (lang === 'zh' ? 'Chinese' : 'English') + ') pointing out anything the assistant missed, got wrong, or could improve. Prefix with "advisor: ".'
     const messages: Message[] = [
       { id: 'dash-adv-1', role: 'user', content: [{ type: 'text', text: 'PROMPT:\n' + u }], source: { kind: 'user' } },
       { id: 'dash-adv-2', role: 'assistant', content: [{ type: 'text', text: a }], source: { kind: 'model', provider: displayModel.provider, model: displayModel.model } },
@@ -2501,7 +2751,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         const before = draft.text.slice(0, draft.cursor)
         if (before.includes('@')) { openFileMenu() }
         else if (draft.text.trim().startsWith('/')) openCmdMenu()
-        else setStatus('tab: 输入 / 开命令菜单，@ 开文件补全', C.yellow)
+        else setStatus(tr('tab.hint'), C.yellow)
         return true
       }
       case 'app.interrupt': {
@@ -2513,7 +2763,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
           openRewind()
         } else {
           lastEscAt = now
-          setStatus('再次按 Esc 进入时间回溯 (rewind)', C.yellow)
+          setStatus(tr('esc.again'), C.yellow)
         }
         return true
       }
@@ -2554,7 +2804,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   function maxScroll(): number {
     const draftLines = wrapDraft(W - 4)
     const maxShown = Math.min(draftLines.length, 4)
-    const vis = Math.max(3, H - 3 - maxShown)
+    const vis = Math.max(3, H - 4 - maxShown)
     return Math.max(0, allLines().length - vis)
   }
 
@@ -2613,7 +2863,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       ['Enter', 'send · queue while streaming'],
       ['Shift+Enter / Ctrl+J', 'newline'],
       ['Ctrl+Enter / Ctrl+Q', 'queue follow-up'],
-      ['Esc · Esc Esc', 'interrupt · 时间回溯 rewind'],
+      ['Esc · Esc Esc', tr('help.esc')],
       ['Ctrl+C', 'cancel / clear screen'],
       ['Ctrl+D', 'exit (confirm)'],
       ['Ctrl+Z', 'suspend'],
@@ -2636,13 +2886,14 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       ['Ctrl+U/K/W', 'delete to line start/end/word'],
       ['Ctrl+Y / Alt+Y', 'yank / yank-pop'],
       ['Ctrl+- / Ctrl+_', 'undo'],
-      ['PgUp/PgDn', 'scroll (置顶提示词栏 + ↓N 未读)'],
+      ['PgUp/PgDn', tr('help.scroll')],
+      [tr('help.wheelKey'), tr('help.wheel')],
       ['/help /new /resume /clear /models /plan', 'commands'],
       ['/goal /compact /rename /settings /theme', 'commands'],
       ['/role /hub /advisor /skills /init', 'commands'],
       ['/think /focus /status /hotkeys /exit', 'commands'],
       ['/preset /settings', 'agent preset · settings panel'],
-      ['Tab (draft 含 @)', '@ 文件补全'],
+      [tr('help.atKey'), tr('help.at')],
     ]
     const lines: string[] = []
     lines.push(C.bright + '  DASH — oh-my-pi TUI usage · DSH kernel' + C.reset)
@@ -2659,9 +2910,9 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (!picker) return []
     const lines: string[] = []
     const p = picker
-    lines.push(C.bright + '  ─ 模型选择器' + (p.temp ? ' (temporary)' : '') + ' ─  (Tab 切栏 · j/k 移动 · Enter 下钻/选中 · Esc 关闭)' + C.reset)
+    lines.push(C.bright + '  ─ ' + tr('picker.title') + (p.temp ? ' (temporary)' : '') + ' ─  (' + tr('picker.hint') + ')' + C.reset)
     lines.push('')
-    lines.push(C.dim + '  角色' + (p.roles[p.roleIdx] === currentRole && !p.temp ? '  (当前)' : '') + C.reset)
+    lines.push(C.dim + '  ' + tr('picker.roles') + (p.roles[p.roleIdx] === currentRole && !p.temp ? '  ' + tr('common.current') : '') + C.reset)
     p.roles.forEach((name, i) => {
       const a = roleAssignment(name)
       const cur = name === currentRole && !p.temp ? C.dim + ' ◀' + C.reset : ''
@@ -2715,7 +2966,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (!resumePick) return []
     const idx = resumePick.idx
     const lines: string[] = []
-    lines.push(C.bright + '  ─ 恢复会话: ' + C.reset + C.green + resumePick.q + C.reset + C.bright + ' ─ (↑↓ 选择 · Enter 恢复 · d 删除(dash-*) · Esc 关闭)' + C.reset)
+    lines.push(C.bright + '  ─ ' + tr('resume.title') + ': ' + C.reset + C.green + resumePick.q + C.reset + C.bright + ' ─ (' + tr('resume.hint') + ')' + C.reset)
     lines.push('')
     if (resumePick.loading) {
       lines.push(C.dim + '    loading titles…' + C.reset)
@@ -2739,7 +2990,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (!rewind) return []
     const idx = rewind.idx
     const lines: string[] = []
-    lines.push(C.bright + '  ⏪ 时间回溯: ' + C.reset + C.green + rewind.q + C.reset + C.bright + ' ─ (↑↓ 选择 · Enter 回滚重发 · Esc 取消)' + C.reset)
+    lines.push(C.bright + '  ⏪ ' + tr('rewind.title') + ': ' + C.reset + C.green + rewind.q + C.reset + C.bright + ' ─ (' + tr('rewind.hint') + ')' + C.reset)
     lines.push('')
     if (!rewind.matches.length) {
       lines.push(C.dim + '    no matches' + C.reset)
@@ -2792,7 +3043,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     const draftLines = wrapDraft(W - 4)
     const maxShown = Math.min(draftLines.length, 4)
     const shown = draftLines.slice(-maxShown)
-    const vis = Math.max(3, H - 3 - maxShown)
+    const vis = Math.max(3, H - 4 - maxShown)
 
     let content: string[] = []
     let unread = 0
@@ -2806,6 +3057,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     else if (rewind) content = rewindLines()
     else if (histSearch) content = histLines()
     else if (cmdMenu) content = menuLines()
+    else if (welcomeVisible()) content = splashLines()
     else {
       const lines = allLines()
       const max = Math.max(0, lines.length - vis)
@@ -2815,31 +3067,24 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       if (!following) unread = Math.max(0, lines.length - (Math.max(0, start) + vis))
       if (!following && lastUserText) {
         // sticky "current prompt" header while browsing the transcript
-        const sticky = C.yellow + '▍' + C.reset + C.dim + ' 当前提示词: ' + C.reset + truncate(lastUserText, W - 18)
+        const sticky = C.yellow + '▍' + C.reset + C.dim + ' ' + tr('sticky.prompt') + C.reset + truncate(lastUserText, W - 18)
         content = [sticky].concat(content.slice(0, vis - 1))
       }
     }
     for (let i = 0; i < vis; i++) frame.push(content[i] || '')
 
-    const prompt = exitConfirm ? C.yellow + ' exit DASH? [y/n]' + C.reset : ''
-    if (prompt) {
-      frame.push(prompt)
-      frame.push('')
-    } else {
-      shown.forEach((ln, i) => {
-        const prefix = i === 0 ? C.green + '❯ ' + C.reset : C.dim + '  ' + C.reset
-        frame.push(prefix + ln.text + C.reset)
-      })
-      for (let i = shown.length; i < maxShown; i++) frame.push('')
-    }
-
-    // status line A: context bar + metrics
+    // status line A: model · effort · tokens · tps · cache · elapsed
+    // (omp-style segments; the bottom of the screen belongs to the input only)
     const effortTxt = (selection.current && selection.current.reasoningEffort) || ''
     const cachePct = cacheReadTotal + usage.in ? Math.round((cacheReadTotal / (cacheReadTotal + usage.in)) * 100) : 0
     const tpsTxt = tpsNow ? C.dim + ' ' + sparkline() + ' ' + tpsNow + ' tok/s' + C.reset : ''
-    const cacheTxt = cacheReadTotal ? C.dim + ' · 缓存 ' + cachePct + '%' + C.reset : ''
-    const effortTxtFull = effortTxt ? C.dim + ' · 思考 ' + effortTxt + C.reset : ''
-    frame.push(contextBar(Math.max(16, Math.min(28, W - 66))) + tpsTxt + cacheTxt + effortTxtFull)
+    const cacheTxt = cacheReadTotal ? C.dim + ' · ' + tr('status.cache') + ' ' + cachePct + '%' + C.reset : ''
+    const effortTxtFull = effortTxt ? C.dim + ' · ◉ ' + effortTxt + C.reset : ''
+    const elapsed = sessionStartAt ? Math.max(0, Math.floor((Date.now() - sessionStartAt) / 1000)) : 0
+    const elapsedTxt = C.dim + ' · ⏱ ' + Math.floor(elapsed / 60) + ':' + String(elapsed % 60).padStart(2, '0') + C.reset
+    frame.push(C.bright + '⬢ ' + C.reset + C.purple + (displayModel.provider ? displayModel.provider + '/' + displayModel.model : '—') + C.reset +
+      effortTxtFull + C.dim + ' · in ' + fmtTokens(usage.in) + ' · out ' + fmtTokens(usage.out) + C.reset +
+      tpsTxt + cacheTxt + elapsedTxt)
 
     // status line B: activity + queue + status + git/cwd/title
     let act = ''
@@ -2852,7 +3097,8 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
         const nav = modelNarration()
         if (nav) act = C.purple + spin + ' ⏵ ' + nav + C.reset + '  '
         else {
-          const phrase = thinkPhrases[Math.floor(tick / 12) % thinkPhrases.length]
+          const phrases = thinkPhrases()
+          const phrase = phrases[Math.floor(tick / 12) % phrases.length]
           act = C.purple + spin + ' ' + phrase + C.reset + '  '
         }
       }
@@ -2860,9 +3106,8 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       const secs = Math.max(1, Math.round((Date.now() - activity.startedAt) / 1000))
       act = C.green + '✓ ' + turnTools + ' tools · ' + secs + 's' + C.reset + '  '
     }
-    const usageTxt = C.dim + 'in ' + usage.in + ' · out ' + usage.out + C.reset
     const queueTxt = queue.length ? C.yellow + 'queue ' + queue.length + C.reset + ' ' : ''
-    const unreadTxt = unread > 0 ? C.yellow + '↓ ' + unread + ' 新消息 (PgDn)' + C.reset + ' ' : ''
+    const unreadTxt = unread > 0 ? C.yellow + '↓ ' + unread + tr('status.unread') + C.reset + ' ' : ''
     const statusTxt = statusText ? (statusColor || C.green) + statusText + C.reset : ''
     let rightTxt = ''
     const cwdShort = (config.cwd || process.cwd()).split('/').slice(-2).join('/')
@@ -2874,7 +3119,20 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
       rightTxt = C.dim + '  ' + bits.join(' · ') + C.reset
     }
     const hintTxt = C.dim + '  /help' + C.reset
-    frame.push(act + usageTxt + '  ' + queueTxt + unreadTxt + statusTxt + hintTxt + rightTxt)
+    frame.push(act + '  ' + queueTxt + unreadTxt + statusTxt + hintTxt + rightTxt)
+
+    // prompt / draft — the very bottom belongs to the input only
+    const prompt = exitConfirm ? C.yellow + ' exit DASH? [y/n]' + C.reset : ''
+    if (prompt) {
+      frame.push(prompt)
+      frame.push('')
+    } else {
+      shown.forEach((ln, i) => {
+        const prefix = i === 0 ? C.green + '❯ ' + C.reset : C.dim + '  ' + C.reset
+        frame.push(prefix + ln.text + C.reset)
+      })
+      for (let i = shown.length; i < maxShown; i++) frame.push('')
+    }
     return frame
   }
 
@@ -2932,13 +3190,13 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   // ── lifecycle ───────────────────────────────────────────────────────────
   let cleaned = false
   function teardownScreen(): void {
-    try { out.write('\x1b[?25h\x1b[?1049l\x1b[0m') } catch (e) { /* ignore */ }
+    try { out.write('\x1b[?25h\x1b[?1049l\x1b[?1000l\x1b[?1006l\x1b[0m') } catch (e) { /* ignore */ }
   }
   function setupScreen(): void {
     try {
       tin.setRawMode(true)
       tin.resume()
-      out.write('\x1b[?1049h\x1b[?25l\x1b[2J\x1b[H' + kittyPushRequest())
+      out.write('\x1b[?1049h\x1b[?25l\x1b[2J\x1b[H\x1b[?1000h\x1b[?1006h' + kittyPushRequest())
     } catch (e) { /* ignore */ }
   }
   async function teardown(): Promise<void> {
@@ -2974,7 +3232,7 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     try { process.kill(process.pid, 'SIGTSTP') } catch (e) { /* ignore */ }
   }
   process.on('exit', () => {
-    try { out.write('\x1b[?25h\x1b[?1049l\x1b[0m') } catch (e) { /* ignore */ }
+    try { out.write('\x1b[?25h\x1b[?1049l\x1b[?1000l\x1b[?1006l\x1b[0m') } catch (e) { /* ignore */ }
   })
   process.on('SIGTERM', () => exitDash(0))
   process.on('SIGHUP', () => exitDash(0))
@@ -2993,8 +3251,9 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     console.error('DASH: cannot enter raw mode (not a TTY?)', e)
     return
   }
-  out.write('\x1b[?1049h\x1b[?25l\x1b[2J\x1b[H' + kittyPushRequest())
+  out.write('\x1b[?1049h\x1b[?25l\x1b[2J\x1b[H\x1b[?1000h\x1b[?1006h' + kittyPushRequest())
   dirty = true
+  loadWelcomeSessions()
 
   if (getCfg(cfg, 'autoResume', false)) {
     void (async () => {

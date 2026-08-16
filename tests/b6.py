@@ -4,10 +4,8 @@
 # (tabs, sections, type-to-search, cycle, changed markers).
 import os, pty, select, time, subprocess, fcntl, termios, struct, sys
 
-# fresh config so defaults apply
-for p in (os.path.expanduser('~/.dash/config.yml'), os.path.expanduser('~/.dash/keybindings.yml')):
-    if os.path.exists(p):
-        os.remove(p)
+# seed the zh UI language so the Chinese assertions below hold
+open(os.path.expanduser('~/.dash/config.yml'), 'w').write('lang: zh\n')
 
 master, slave = pty.openpty()
 fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack('HHHH', 40, 132, 0, 0))

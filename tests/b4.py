@@ -3,10 +3,11 @@
 # /theme light/dark, /settings panel, @ file completion, chat round trips.
 import os, pty, select, time, subprocess, fcntl, termios, struct, sys, shutil
 
-# reset DASH config so the test starts on the dark theme
-for p in (os.path.expanduser('~/.dash/config.yml'), os.path.expanduser('~/.dash/keybindings.yml')):
+# reset DASH config so the test starts on the dark theme + zh UI
+for p in (os.path.expanduser('~/.dash/keybindings.yml'),):
     if os.path.exists(p):
         os.remove(p)
+open(os.path.expanduser('~/.dash/config.yml'), 'w').write('lang: zh\n')
 
 wd = '/tmp/dashb4'
 shutil.rmtree(wd, ignore_errors=True)

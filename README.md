@@ -31,8 +31,9 @@ dash                 # 启动（等价于 dsh --profile dash）
 ### 01 · 终端原生渲染，零依赖
 
 整个界面是 raw-ANSI：差分渲染只重绘变化的行、kitty 键盘协议（CSI-u）逐键精确
-解析、备用屏幕 + 隐藏硬件光标。不引入 React/Ink，没有 node_modules 包袱 ——
-插件本体一个文件，运行时依赖只有 DSH 官方包。
+解析、SGR 鼠标（滚轮滚动/列表中移动选择）、备用屏幕 + 隐藏硬件光标。不引入
+React/Ink，没有 node_modules 包袱 —— 插件本体一个文件，运行时依赖只有 DSH
+官方包。
 
 ### 02 · oh-my-pi 编辑语义全套
 
@@ -50,9 +51,10 @@ Markdown 渲染（标题/列表/引用/代码高亮/表格/链接，流式安全
 
 ### 04 · 状态栏仪表
 
-上下文分段进度条（输入/思考/输出三色段 + 占比）、TPS sparkline、缓存命中率、
-思考深度、⏵ 模型自述工作行（取流式思考最后一行）、回合统计（tools · 耗时）、
-git 分支 / cwd / 会话标题。全部实时刷新，40ms 一拍。
+omp 风格状态行：`⬢ 模型 · ◉ 思考深度 · in/out tokens · TPS sparkline · 缓存命中率 · ⏱ 会话耗时`，
+外加活动行（spinner + ⛭ 工具名 / ⏵ 模型自述工作行 / ✓ 回合统计）、队列、状态
+提示、git 分支 / cwd / 会话标题。所有信息都在输入框上方 —— 屏幕最底部只属于
+输入文字。
 
 ### 05 · 模型角色体系
 
@@ -81,9 +83,15 @@ Mode SDK）、**极简模式**（仅持久 bash + str_replace_editor 双工具�
 `/settings` 完全移植 oh-my-pi 的 SettingsList 交互：appearance / model /
 interaction / session 四个页签 + 分组侧栏（≥2 组时左右分栏、非活动组淡化）、
 type-to-search 跨页模糊搜索（Tab 跳到下一命中的页签）、Enter/Space 循环取值、
-3 行描述区、变更标记、Esc 先退搜索再关面板。11 个真实旋钮（主题、色盲模式、
-spinner 帧、默认思考深度、隐藏思考块、advisor、双击 Esc、排队投递、回合铃、
-静默启动、autoResume），全部即时生效并写入 `~/.dash/config.yml`。
+3 行描述区、变更标记、Esc 先退搜索再关面板。12 个真实旋钮（语言、主题、色盲
+模式、spinner 帧、默认思考深度、隐藏思考块、advisor、双击 Esc、排队投递、回合
+铃、静默启动、autoResume），全部即时生效并写入 `~/.dash/config.yml`。
+
+### 08½ · 启动欢迎屏
+
+进入会话前显示 omp 风格欢迎屏：尖角双栏框（无圆角元素），左侧 `Welcome back!`
++ 粗体 DASH 字符画 + 模型名/提供方，右侧 Tips、当前 Agent preset、最近会话
+（真实读自 `~/.dsh/sessions`，含相对时间）。第一条消息发出后自动让位给转录。
 
 ### 09 · Agent Hub（子代理中心）
 
@@ -122,6 +130,7 @@ Alt+A / `/hub` 打开子代理树：缩进层级、label、mode、running/inacti
 | `Ctrl+O` | 工具参数展开/折叠 |
 | `Ctrl+L` | 重置显示 |
 | `PgUp/PgDn` · `Alt+↑/↓` | 滚动历史 / 出队 |
+| `鼠标滚轮` | 滚动历史；悬浮列表中移动选择（SGR 鼠标，自动启用） |
 | `/help /clear /models /new /exit /model <p>/<m> /status` | 斜杠命令 |
 | `/plan /goal /compact` 等 | 自动转发到 DSH 命令注册表 |
 
@@ -132,6 +141,7 @@ Alt+A / `/hub` 打开子代理树：缩进层级、label、mode、running/inacti
 - `/new` 新会话 · `/resume` 恢复/重放/删除 · `/rename <t>` 重命名 · `/clear` 清屏
 - `/preset` 切换 agent preset（标准/PTC/极简/创造）· `/settings` 设置面板
 - `/model <p>/<m>` 换模型 · `/role <name>` 切角色 · `/theme <dark|light>` 换主题
+- `/lang <en|zh>` 切换界面语言（默认英文）
 - `/plan` 计划模式开关 · `/goal` `/compact`（DSH 注册表）· `/hub` 子代理中心
 - `/advisor <on|off>` · `/skills` · `/init` · `/think` `/focus` · `/status` · `/hotkeys`
 
@@ -140,9 +150,10 @@ Alt+A / `/hub` 打开子代理树：缩进层级、label、mode、running/inacti
 - **默认模型**：profile 的 `cordis.patch.yml` 中 `agent-default-model`（默认
   `opencode-go / deepseek-v4-flash`，凭据走 `$DSH_HOME/.credentials.yaml`）。
 - **启动覆盖**：`DASH_PROVIDER` / `DASH_MODEL` 环境变量。
-- **用户设置**：`~/.dash/config.yml`（主题、spinner、思考深度、advisor、preset、
+- **用户设置**：`~/.dash/config.yml`（语言、主题、spinner、思考深度、advisor、preset、
   autoResume 等，设置面板写入）；`~/.dash/keybindings.yml`（键位）；
-  `~/.dash/rules.yml`（TTSR 流规则）。
+  `~/.dash/rules.yml`（TTSR 流规则）。界面语言默认英文，`/lang <en|zh>` 或
+  设置面板「Language」切换。
 - **权限**：终端信任模型 —— `danger-full-access` + `policy: never`（无审批弹窗，
   终端即信任边界）；想收紧可改 profile 的 `cordis.patch.yml`（`permission` 行的
   `defaultPreset` 必须与 `sandbox-policy` / `approval` 两个旋钮匹配，否则启动报错）。

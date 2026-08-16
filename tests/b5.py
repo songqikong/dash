@@ -3,6 +3,9 @@
 # magic keywords (/think /focus /init), real chat round trips.
 import os, pty, select, time, subprocess, fcntl, termios, struct, sys, shutil
 
+# seed the zh UI language so the Chinese assertions below hold
+open(os.path.expanduser('~/.dash/config.yml'), 'w').write('lang: zh\n')
+
 wd = '/tmp/dashb5'
 shutil.rmtree(wd, ignore_errors=True)
 os.makedirs(wd)

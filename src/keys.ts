@@ -12,6 +12,12 @@ export interface KeyEvent {
   meta: boolean
   /** Extra payload for special events (e.g. kitty capability response flags). */
   flags?: string
+  /** SGR mouse payload (key === 'mouse'): raw button code incl. modifiers. */
+  button?: number
+  x?: number
+  y?: number
+  /** True for the press half of a button/wheel event (release events carry `m`). */
+  pressed?: boolean
 }
 
 // ---- action registry (omp TUI + app keybindings) ----
@@ -226,6 +232,17 @@ export class KeyParser {
       if (b.length < 2) return null
       const c2 = b[1]
       if (c2 === '[') {
+        // SGR mouse events: CSI < button; x; y M/m (wheel = buttons 64-67)
+        if (b.startsWith('\x1b[<')) {
+          const sm = b.match(/^\x1b\[<(\d+);(\d+);(\d+)([Mm])/)
+          if (sm) {
+            this.buf = b.slice(sm[0].length)
+            return { key: 'mouse', char: null, ctrl: false, alt: false, shift: false, meta: false, button: Number(sm[1]), x: Number(sm[2]), y: Number(sm[3]), pressed: sm[4] === 'M' }
+          }
+          if (b.length < 16) return null
+          this.buf = b.slice(1)
+          return null
+        }
         // CSI ... final
         const m = b.match(/^\x1b\[([0-9;:]*)([A-Za-z~])/)
         if (!m) {
