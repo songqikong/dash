@@ -2403,54 +2403,56 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   ]
   const ansiRe = /\x1b\[[0-9;]*m/g
   const plainW = (s: string) => strWidth(s.replace(ansiRe, ''))
-  const cell = (s: string, w: number) => s + C.reset + ' '.repeat(Math.max(0, w - plainW(s)))
 
   function splashLines(): string[] {
     const lines: string[] = []
     const boxW = Math.max(64, W - 2)
-    const leftW = 35
-    const rightW = boxW - leftW - 4
-    const sepCol = leftW + 2
+    const inner = boxW - 2
     const D = C.dim
-    const row = (l: string, r: string) => D + '│' + C.reset + cell(l, leftW) + D + '│ ' + C.reset + cell(r, rightW) + D + '│' + C.reset
+    const center = (s: string) => {
+      const w = plainW(s)
+      const pad = Math.max(0, Math.floor((inner - w) / 2))
+      return ' '.repeat(pad) + s + ' '.repeat(Math.max(0, inner - w - pad))
+    }
+    const row = (content: string) => D + '│' + C.reset + center(content) + D + '│' + C.reset
+    const divider = row(D + '─'.repeat(inner) + C.reset)
     const presetName = () => {
       const cur = presetId || 'standard'
       const p = presets.find((x) => x.id === cur)
       if (lang === 'zh') return p ? (p.name || p.id) : cur
       return { standard: 'Standard', code: 'PTC', minimal: 'Minimal', cordis: 'Cordis' }[cur] || cur
     }
-    lines.push(D + '┌───' + 'DASH v0.2.0' + '─'.repeat(Math.max(0, sepCol - 'DASH v0.2.0'.length - 5)) + '┬' + '─'.repeat(Math.max(1, boxW - sepCol - 1)) + '┐' + C.reset)
-    // left panel: welcome + DASH wordmark + model
-    lines.push(row('      ' + C.bright + 'Welcome back!' + C.reset, ''))
-    lines.push(row('', ''))
-    for (const lg of DASH_LOGO) lines.push(row(C.yellow + lg + C.reset, ''))
-    lines.push(row('', ''))
+    // single centered column: welcome + DASH wordmark + model · tips · preset · sessions
+    lines.push(D + '┌───' + 'DASH v0.2.0' + '─'.repeat(Math.max(0, inner - 'DASH v0.2.0'.length - 3)) + '┐' + C.reset)
+    lines.push(row(C.bright + 'Welcome back!' + C.reset))
+    lines.push(row(''))
+    for (const lg of DASH_LOGO) lines.push(row(C.yellow + lg + C.reset))
+    lines.push(row(''))
     const modelTxt = displayModel.model ? displayModel.model : '—'
-    lines.push(row(' ' + C.bright + truncate(modelTxt, 21) + C.reset, ''))
-    lines.push(row('       ' + C.dim + truncate(displayModel.provider || '', 17) + C.reset, ''))
-    lines.push(row('', ''))
-    // right panel: tips + agent preset + recent sessions
-    lines.push(row('', D + ' Tips' + C.reset))
-    const tips = [tr('splash.tip1'), tr('splash.tip2'), tr('splash.tip3')]
-    for (const t of tips) lines.push(row('', D + ' ' + t + C.reset))
-    lines.push(row('', D + ' ' + '─'.repeat(Math.min(rightW - 2, 30)) + C.reset))
-    lines.push(row('', D + ' Agent preset' + C.reset))
-    lines.push(row('', D + ' ' + presetName() + C.dim + ' (' + (presetId || 'standard') + ')' + C.reset))
-    lines.push(row('', D + ' ' + '─'.repeat(Math.min(rightW - 2, 30)) + C.reset))
-    lines.push(row('', D + ' Recent sessions' + C.reset))
+    lines.push(row(C.bright + truncate(modelTxt, 40) + C.reset))
+    lines.push(row(D + (displayModel.provider || '') + C.reset))
+    lines.push(row(''))
+    lines.push(divider)
+    lines.push(row(D + 'Tips' + C.reset))
+    for (const t of [tr('splash.tip1'), tr('splash.tip2'), tr('splash.tip3')]) lines.push(row(D + t + C.reset))
+    lines.push(divider)
+    lines.push(row(D + 'Agent preset' + C.reset))
+    lines.push(row(D + presetName() + C.dim + ' (' + (presetId || 'standard') + ')' + C.reset))
+    lines.push(divider)
+    lines.push(row(D + 'Recent sessions' + C.reset))
     if (!welcomeSessions) {
-      lines.push(row('', D + '   ' + tr('splash.loading') + C.reset))
+      lines.push(row(D + tr('splash.loading') + C.reset))
     } else {
       const list = welcomeSessions.filter((s) => s.id !== (agent && agent.id)).slice(0, 4)
-      if (!list.length) lines.push(row('', D + '   ' + tr('splash.noSessions') + C.reset))
+      if (!list.length) lines.push(row(D + tr('splash.noSessions') + C.reset))
       else for (const s of list) {
         const t = welcomeTitles[s.id] || s.id.slice(0, 24)
-        lines.push(row('', ' • ' + truncate(t, Math.max(8, rightW - 14)) + D + ' (' + relTime(s.time) + ')' + C.reset))
+        lines.push(row('• ' + truncate(t, Math.max(8, inner - 20)) + D + ' (' + relTime(s.time) + ')' + C.reset))
       }
     }
-    lines.push(row('', ''))
-    lines.push(D + '└' + '─'.repeat(Math.max(1, sepCol - 2)) + '┴' + '─'.repeat(Math.max(1, boxW - sepCol - 1)) + '┘' + C.reset)
-    lines.push(D + ' ' + tr('splash.tip') + C.reset)
+    lines.push(row(''))
+    lines.push(D + '└' + '─'.repeat(Math.max(1, inner)) + '┘' + C.reset)
+    lines.push(D + ' ' + center(tr('splash.tip')) + C.reset)
     return lines
   }
 

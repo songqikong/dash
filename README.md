@@ -89,9 +89,10 @@ type-to-search 跨页模糊搜索（Tab 跳到下一命中的页签）、Enter/S
 
 ### 08½ · 启动欢迎屏
 
-进入会话前显示 omp 风格欢迎屏：尖角双栏框（无圆角元素），左侧 `Welcome back!`
-+ 粗体 DASH 字符画 + 模型名/提供方，右侧 Tips、当前 Agent preset、最近会话
-（真实读自 `~/.dsh/sessions`，含相对时间）。第一条消息发出后自动让位给转录。
+进入会话前显示 omp 风格欢迎屏：尖角单列框（无圆角元素，全部元素居中），
+`Welcome back!` + 粗体 DASH 字符画 + 模型名/提供方，下方依次是 Tips、当前
+Agent preset、最近会话（真实读自 `~/.dsh/sessions`，含相对时间）。第一条消息
+发出后自动让位给转录。
 
 ### 09 · Agent Hub（子代理中心）
 
