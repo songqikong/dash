@@ -153,6 +153,12 @@ interface CmdMenuState {
   q: string
   matches: CmdMenuMatch[]
   idx: number
+  mode: 'cmd' | 'args' // 'args' = completing an argument of /cmd (zsh-style)
+  cmd: string          // command being completed, without the leading '/'
+  picked: string[]     // already-typed argument values
+  argIdx: number       // index of the argument token under completion
+  modelsCache: Array<{ id: string; name: string }> // async model list for /models
+  modelsProv: string
 }
 
 interface ResumeItem {
@@ -1302,24 +1308,78 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
   ]
 
   function openCmdMenu(): void {
-    cmdMenu = { q: '', matches: [], idx: 0 }
+    cmdMenu = { q: '', matches: [], idx: 0, mode: 'cmd', cmd: '', picked: [], argIdx: 0, modelsCache: [], modelsProv: '' }
+    void ensurePresets().then(() => { if (cmdMenu && cmdMenu.mode === 'args' && cmdMenu.cmd === 'preset') { updateMenuMatches(); dirty = true } })
     updateMenuQ()
     dirty = true
   }
 
   function updateMenuQ(): void {
     if (!cmdMenu) return
-    const after = draft.text.slice(1)
-    const q = after.split(/\s+/)[0]
-    cmdMenu.q = q
+    const toks = draft.text.slice(1).split(/\s+/)
+    const cmd = toks[0] || ''
+    if (toks.length <= 1 || !cmd) {
+      // still typing the command word itself
+      cmdMenu.mode = 'cmd'
+      cmdMenu.cmd = ''
+      cmdMenu.q = cmd
+      updateMenuMatches()
+      return
+    }
+    // completing an argument of /cmd
+    cmdMenu.mode = 'args'
+    cmdMenu.cmd = cmd
+    cmdMenu.argIdx = toks.length - 2
+    cmdMenu.picked = toks.slice(1, -1)
+    cmdMenu.q = toks[toks.length - 1]
+    if (cmd === 'models' && cmdMenu.argIdx === 1 && cmdMenu.picked[0] && cmdMenu.picked[0] !== cmdMenu.modelsProv) {
+      cmdMenu.modelsProv = cmdMenu.picked[0]
+      cmdMenu.modelsCache = []
+      loadMenuModels(cmdMenu.picked[0])
+    }
     updateMenuMatches()
+  }
+
+  function cmdHasArgCandidates(cmd: string): boolean {
+    return cmd === 'models' || cmd === 'lang' || cmd === 'theme' || cmd === 'role' || cmd === 'advisor' || cmd === 'preset'
+  }
+
+  /** Synchronous argument candidates for the command currently being completed. */
+  function menuArgCandidates(): Array<[string, string]> {
+    const m = cmdMenu
+    if (!m || !m.cmd) return []
+    if (m.cmd === 'models') {
+      if (m.argIdx === 0) {
+        try { return llm ? llm.listProviders().map((p) => [p.id, p.name || p.id] as [string, string]) : [] } catch (e) { return [] }
+      }
+      if (m.argIdx === 1) return m.modelsCache.map((x) => [x.id, x.name || x.id] as [string, string])
+      return []
+    }
+    if (m.cmd === 'lang') return [['en', 'English'], ['zh', '中文']]
+    if (m.cmd === 'theme') return [['dark', 'dark'], ['light', 'light']]
+    if (m.cmd === 'role') return ROLE_NAMES.map((r) => [r, ''])
+    if (m.cmd === 'advisor') return [['on', ''], ['off', '']]
+    if (m.cmd === 'preset') return presets.map((p) => [p.id, p.name || ''])
+    return []
+  }
+
+  function loadMenuModels(provId: string): void {
+    if (!llm) return
+    llm.listModels(provId).then((ms) => {
+      if (cmdMenu && cmdMenu.cmd === 'models' && cmdMenu.modelsProv === provId) {
+        cmdMenu.modelsCache = ms || []
+        updateMenuQ()
+        dirty = true
+      }
+    }).catch(() => { /* ignore */ })
   }
 
   function updateMenuMatches(): void {
     if (!cmdMenu) return
     const q = cmdMenu.q
     const scored: CmdMenuMatch[] = []
-    for (const [name, desc] of COMMAND_LIST) {
+    const src = cmdMenu.mode === 'args' ? menuArgCandidates() : COMMAND_LIST
+    for (const [name, desc] of src) {
       if (!q) { scored.push({ name, desc, score: 0 }); continue }
       const sc = fuzzyScore(q, name)
       if (sc >= 0) scored.push({ name, desc, score: sc })
@@ -1329,16 +1389,38 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     cmdMenu.idx = Math.min(cmdMenu.idx, Math.max(0, cmdMenu.matches.length - 1))
   }
 
+  /** Fill the selected candidate into the draft; for nested args (provider → model) stay open. */
+  function acceptArg(m: CmdMenuMatch): void {
+    const cm = cmdMenu
+    if (!cm) return
+    const toks = draft.text.slice(1).split(/\s+/)
+    const prefix = '/' + toks.slice(0, -1).join(' ')
+    draft.text = prefix + ' ' + m.name + ' '
+    draft.cursor = draft.text.length
+    if (cm.cmd === 'models' && cm.argIdx === 0) {
+      // provider picked — reopen at the model level (list loads async)
+      updateMenuQ()
+      dirty = true
+      return
+    }
+    cmdMenu = null
+    dirty = true
+  }
+
   function cmdMenuComplete(): void {
     if (!cmdMenu) return
     const m = cmdMenu.matches[cmdMenu.idx]
     if (!m) return
-    const cmdName = m.name.split(' ')[0]
+    if (cmdMenu.mode === 'args') { acceptArg(m); return }
+    const cmdName = m.name.split(' ')[0].slice(1)
     const rest = draft.text.slice(1).split(/\s+/).slice(1).join(' ')
-    const full = '/' + cmdName + (rest ? ' ' + rest : '')
-    draft.text = full
-    draft.cursor = full.length
-    cmdMenu = null
+    draft.text = '/' + cmdName + (cmdHasArgCandidates(cmdName) ? ' ' : rest ? ' ' + rest : '')
+    draft.cursor = draft.text.length
+    if (cmdHasArgCandidates(cmdName)) {
+      updateMenuQ() // enter argument completion mode
+    } else {
+      cmdMenu = null
+    }
     dirty = true
   }
 
@@ -1457,8 +1539,8 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (ev.char !== null && !ev.ctrl && !ev.alt && !ev.meta) {
       draft.insert(ev.char)
       dirty = true
-      // oh-my-pi behavior: typing '/' at the prompt opens the command menu
-      if (!cmdMenu && draft.text.startsWith('/') && draft.text.length === 1) openCmdMenu()
+      // oh-my-pi behavior: a leading '/' (typed, pasted or batch-fed) opens the command menu
+      if (!cmdMenu && draft.text.startsWith('/')) openCmdMenu()
       return
     }
     // Ambiguous lone-Esc: alt+char with no binding while an overlay is open is
@@ -1570,7 +1652,18 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (!cmdMenu) return
     if (ev.key === 'escape' || (ev.char === 'c' && ev.ctrl)) { cmdMenu = null; dirty = true; return }
     if (ev.key === 'enter') {
-      // Enter submits the full line (omp behavior); Tab completes
+      const m = cmdMenu.matches[cmdMenu.idx]
+      if (cmdMenu.mode === 'cmd' && m) {
+        // Enter runs the highlighted command directly (omp /-menu behavior)
+        const cmdName = m.name.split(' ')[0].slice(1)
+        const rest = draft.text.slice(1).split(/\s+/).slice(1).join(' ')
+        const line = '/' + cmdName + (rest ? ' ' + rest : '')
+        cmdMenu = null
+        sendText(line)
+        return
+      }
+      if (cmdMenu.mode === 'args' && m) { acceptArg(m); return }
+      // nothing highlighted — submit the full line
       const t = draft.text
       cmdMenu = null
       sendText(t)
@@ -2963,8 +3056,16 @@ export function apply(ctx: Context, config: DashConfig = {}): (() => Promise<voi
     if (!cmdMenu) return []
     const idx = cmdMenu.idx
     const lines: string[] = []
-    lines.push(C.bright + '  ─ commands: ' + C.reset + C.green + cmdMenu.q + C.reset + C.bright + ' ─ (type to filter · ↑↓ · Enter/Tab complete · Esc close)' + C.reset)
+    if (cmdMenu.mode === 'args') {
+      const path = '/' + cmdMenu.cmd + (cmdMenu.picked.length ? ' ' + cmdMenu.picked.join(' ') + ' ' : ' ')
+      lines.push(C.bright + '  ─ ' + path + '…: ' + C.reset + C.green + cmdMenu.q + C.reset + C.bright + ' ─ (↑↓ · Enter/Tab accept · Esc close)' + C.reset)
+    } else {
+      lines.push(C.bright + '  ─ commands: ' + C.reset + C.green + cmdMenu.q + C.reset + C.bright + ' ─ (type to filter · ↑↓ · Enter run · Tab complete · Esc close)' + C.reset)
+    }
     lines.push('')
+    if (!cmdMenu.matches.length) {
+      lines.push(C.dim + (cmdMenu.mode === 'args' && cmdMenu.cmd === 'models' && cmdMenu.argIdx === 1 ? '    loading models…' : '    no matches') + C.reset)
+    }
     cmdMenu.matches.forEach((m, i) => {
       lines.push((i === idx ? C.green + '  › ' : '    ') + (i === idx ? C.green : C.bright) + m.name + C.reset + C.dim + '  ' + m.desc + C.reset)
     })
