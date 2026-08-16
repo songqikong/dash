@@ -2,7 +2,9 @@
 // display-width wrapping. Streaming-safe: unterminated fences/tables degrade
 // to plain paragraphs instead of corrupting the frame.
 
-const ANSI = {
+type Style = 'bold' | 'dim' | 'italic' | 'underline' | 'strike' | 'code' | 'link' | 'h1' | 'h2' | 'h3' | 'list' | 'quote' | 'hr' | 'th' | 'kw' | 'str' | 'num' | 'com' | 'reset'
+
+const ANSI: Record<Style, string> = {
   bold: '\x1b[1m',
   dim: '\x1b[38;5;245m',
   italic: '\x1b[3m',
@@ -25,15 +27,16 @@ const ANSI = {
 }
 const RESET = ANSI.reset
 
-function charWidth(ch) {
-  const c = ch.codePointAt(0)
+function charWidth(ch: string): number {
+  const c = ch.codePointAt(0) ?? 0
   if ((c >= 0x1100 && c <= 0x115f) || (c >= 0x2e80 && c <= 0xa4cf) ||
       (c >= 0xac00 && c <= 0xd7a3) || (c >= 0xf900 && c <= 0xfaff) ||
       (c >= 0xfe30 && c <= 0xfe4f) || (c >= 0xff00 && c <= 0xff60) ||
       (c >= 0xffe0 && c <= 0xffe6) || (c >= 0x20000 && c <= 0x3fffd)) return 2
   return 1
 }
-export function strWidth(s) {
+
+export function strWidth(s: string): number {
   let w = 0
   for (const ch of s) w += charWidth(ch)
   return w
@@ -42,10 +45,15 @@ export function strWidth(s) {
 // ── inline ────────────────────────────────────────────────────────────────
 const INLINE = /(`[^`]*`)|(\*\*[^*\n]+\*\*)|(\*[^*\n]+\*)|(~~[^~\n]+~~)|(\[[^\]\n]+\]\([^)\n]*\))/g
 
-function inlineSegments(text) {
-  const segs = []
+interface Segment {
+  t: string
+  s: Style | null
+}
+
+function inlineSegments(text: string): Segment[] {
+  const segs: Segment[] = []
   let last = 0
-  let m
+  let m: RegExpExecArray | null
   INLINE.lastIndex = 0
   while ((m = INLINE.exec(text)) !== null) {
     if (m.index > last) segs.push({ t: text.slice(last, m.index), s: null })
@@ -75,8 +83,8 @@ const COMMENT = /^(\s*)(\/\/|#|--|;).*$/
 const STRING = /^("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/
 const NUMBER = /^\d[\d_]*\.?\d*[a-zA-Z]*/
 
-function highlightCodeLine(line) {
-  const segs = []
+function highlightCodeLine(line: string): Segment[] {
+  const segs: Segment[] = []
   let i = 0
   const mC = line.match(COMMENT)
   if (mC) {
@@ -102,11 +110,11 @@ function highlightCodeLine(line) {
 }
 
 // ── segment wrapping ──────────────────────────────────────────────────────
-function wrapSegments(segs, width, prefix = '') {
-  const lines = []
+function wrapSegments(segs: Segment[], width: number, prefix = ''): string[] {
+  const lines: string[] = []
   let cur = ''
   let curW = strWidth(prefix)
-  const push = (line) => lines.push(line)
+  const push = (line: string) => lines.push(line)
   const flushLine = () => {
     if (cur.length || !lines.length) {
       push(cur)
@@ -115,7 +123,7 @@ function wrapSegments(segs, width, prefix = '') {
     }
   }
   let first = true
-  const emit = (text, style) => {
+  const emit = (text: string, style: Style | null) => {
     if (!text) return
     let seg = text
     while (seg.length) {
@@ -139,9 +147,18 @@ function wrapSegments(segs, width, prefix = '') {
 }
 
 // ── blocks ────────────────────────────────────────────────────────────────
-function splitBlocks(src) {
+type Block =
+  | { kind: 'code'; lang: string; body: string[]; closed: boolean }
+  | { kind: 'table'; rows: string[] }
+  | { kind: 'heading'; level: number; text: string }
+  | { kind: 'hr' }
+  | { kind: 'list'; items: { marker: string; text: string }[] }
+  | { kind: 'quote'; body: string[] }
+  | { kind: 'para'; lines: string[] }
+
+function splitBlocks(src: string): Block[] {
   const lines = src.split('\n')
-  const blocks = []
+  const blocks: Block[] = []
   let i = 0
   while (i < lines.length) {
     const line = lines[i]
@@ -149,7 +166,7 @@ function splitBlocks(src) {
     const fm = line.match(/^\s*```\s*([\w+-]*)\s*$/)
     if (fm) {
       const lang = fm[1]
-      const body = []
+      const body: string[] = []
       i++
       let closed = false
       while (i < lines.length) {
@@ -162,7 +179,7 @@ function splitBlocks(src) {
     }
     // table: current line has | and next is separator
     if (line.includes('|') && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(lines[i + 1])) {
-      const rows = []
+      const rows: string[] = []
       while (i < lines.length && lines[i].includes('|')) {
         if (/^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(lines[i]) && rows.length) break
         rows.push(lines[i])
@@ -183,7 +200,7 @@ function splitBlocks(src) {
     }
     const lm = line.match(/^\s*([-*+]|\d+\.)\s+(.*)$/)
     if (lm && !/^\s*[-*_]\s*$/.test(line)) {
-      const items = []
+      const items: { marker: string; text: string }[] = []
       while (i < lines.length) {
         const m2 = lines[i].match(/^\s*([-*+]|\d+\.)\s+(.*)$/)
         if (m2) { items.push({ marker: m2[1], text: m2[2] }); i++ }
@@ -194,7 +211,7 @@ function splitBlocks(src) {
       continue
     }
     if (/^\s*>\s?/.test(line)) {
-      const body = []
+      const body: string[] = []
       while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
         body.push(lines[i].replace(/^\s*>\s?/, ''))
         i++
@@ -203,7 +220,7 @@ function splitBlocks(src) {
       continue
     }
     // paragraph
-    const para = []
+    const para: string[] = []
     while (i < lines.length && lines[i].trim() !== '' && !/^\s*```/.test(lines[i])) {
       if (/^\s{0,3}#{1,6}\s/.test(lines[i])) break
       if (lines[i].includes('|') && i + 1 < lines.length && /^\s*\|?[\s:|-]+\|[\s:|-]*$/.test(lines[i + 1])) break
@@ -217,8 +234,8 @@ function splitBlocks(src) {
 }
 
 // ── render ────────────────────────────────────────────────────────────────
-export function renderMarkdown(src, width) {
-  const out = []
+export function renderMarkdown(src: string, width: number): string[] {
+  const out: string[] = []
   const blocks = splitBlocks(src)
   for (const b of blocks) {
     if (b.kind === 'heading') {
@@ -231,16 +248,16 @@ export function renderMarkdown(src, width) {
     } else if (b.kind === 'list') {
       for (const it of b.items) {
         const marker = it.marker ? (it.marker === '-' || it.marker === '*' || it.marker === '+' ? '•' : it.marker) : ' '
-        const segs = [{ t: marker + ' ', s: 'list' }].concat(inlineSegments(it.text))
+        const segs: Segment[] = [{ t: marker + ' ', s: 'list' }, ...inlineSegments(it.text)]
         wrapSegments(segs, width, '  ').forEach((ln) => out.push(ln))
       }
     } else if (b.kind === 'quote') {
       for (const ql of b.body) {
-        const segs = [{ t: '▍ ', s: 'quote' }].concat(inlineSegments(ql))
+        const segs: Segment[] = [{ t: '▍ ', s: 'quote' }, ...inlineSegments(ql)]
         wrapSegments(segs, width, '  ').forEach((ln) => out.push(ln))
       }
     } else if (b.kind === 'para') {
-      const segs = []
+      const segs: Segment[] = []
       b.lines.forEach((ln, i) => {
         if (i) segs.push({ t: ' ', s: null })
         segs.push(...inlineSegments(ln))
@@ -248,7 +265,6 @@ export function renderMarkdown(src, width) {
       wrapSegments(segs, width).forEach((ln) => out.push(ln))
     } else if (b.kind === 'code') {
       if (b.closed) {
-        const segs = b.body.map((l, i) => ({ t: (i ? '\n' : '') + l, s: 'code' }))
         // wrap per line to keep the bg shade per line
         for (const l of b.body) {
           const hl = highlightCodeLine(l)
@@ -257,7 +273,7 @@ export function renderMarkdown(src, width) {
         }
       } else {
         // streaming: unclosed fence → plain paragraph
-        const segs = []
+        const segs: Segment[] = []
         b.body.forEach((l, i) => {
           if (i) segs.push({ t: ' ', s: null })
           segs.push(...inlineSegments(l))
@@ -268,7 +284,7 @@ export function renderMarkdown(src, width) {
       const cells = b.rows.map((r) => r.split('|').map((c) => c.trim()).filter((c, idx, arr) => !(idx === 0 && c === '') && !(idx === arr.length - 1 && c === '')))
       if (cells.length < 2) {
         // streaming: no separator yet → plain
-        const segs = []
+        const segs: Segment[] = []
         b.rows.forEach((l, i) => {
           if (i) segs.push({ t: ' ', s: null })
           segs.push(...inlineSegments(l))
@@ -277,7 +293,7 @@ export function renderMarkdown(src, width) {
         continue
       }
       const ncol = Math.max(...cells.map((r) => r.length))
-      const colW = []
+      const colW: number[] = []
       for (let c = 0; c < ncol; c++) {
         let w = 0
         for (const r of cells) if (r[c]) w = Math.max(w, strWidth(r[c]))
@@ -285,10 +301,10 @@ export function renderMarkdown(src, width) {
       }
       const total = colW.reduce((a, b) => a + b, 0) + ncol + 1
       const sepLine = ANSI.hr + '+' + colW.map((w) => '─'.repeat(w)).join('+') + '+' + RESET
-      const renderRow = (row, style) => {
+      const renderRow = (row: string[], style: Style | null): string => {
         let line = ''
         for (let c = 0; c < ncol; c++) {
-          const cell = (row[c] || '').padEnd ? row[c] : ''
+          const cell = row[c] || ''
           const pad = Math.max(0, colW[c] - strWidth(cell))
           line += '| ' + (style ? ANSI[style] : '') + cell + ' '.repeat(pad) + (style ? RESET : '') + ' '
         }
@@ -296,7 +312,7 @@ export function renderMarkdown(src, width) {
         return line
       }
       const headerSep = cells[1] || []
-      cells[0] && out.push(renderRow(cells[0], 'th'))
+      out.push(renderRow(cells[0], 'th'))
       out.push(sepLine)
       for (let r = 2; r < cells.length; r++) out.push(renderRow(cells[r], null))
     }

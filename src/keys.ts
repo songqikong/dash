@@ -2,8 +2,20 @@
 // plus the oh-my-pi action registry (defaults from omp keybindings.ts,
 // remappable through ~/.dash/keybindings.yml).
 
+/** One parsed key event; `char` is the printable text (or null), `key` the named key. */
+export interface KeyEvent {
+  key: string | null
+  char: string | null
+  ctrl: boolean
+  alt: boolean
+  shift: boolean
+  meta: boolean
+  /** Extra payload for special events (e.g. kitty capability response flags). */
+  flags?: string
+}
+
 // ---- action registry (omp TUI + app keybindings) ----
-export const ACTIONS = {
+export const ACTIONS: Record<string, { desc: string }> = {
   // editor
   'tui.editor.cursorUp': { desc: 'Move cursor up' },
   'tui.editor.cursorDown': { desc: 'Move cursor down' },
@@ -66,7 +78,7 @@ export const ACTIONS = {
 }
 
 // omp defaults: action -> default keys
-export const DEFAULT_ACTION_KEYS = {
+export const DEFAULT_ACTION_KEYS: Record<string, string[]> = {
   'tui.editor.cursorUp': ['up'],
   'tui.editor.cursorDown': ['down'],
   'tui.editor.cursorLeft': ['left', 'ctrl+b'],
@@ -125,40 +137,40 @@ export const DEFAULT_ACTION_KEYS = {
 }
 
 /** Build key -> [actions] map; remap from ~/.dash/keybindings.yml wins. */
-export function buildKeyMap(remap = {}) {
-  const actionKeys = {}
+export function buildKeyMap(remap: Record<string, string | string[] | null | undefined> = {}): Map<string, string[]> {
+  const actionKeys: Record<string, string[]> = {}
   for (const [action, keys] of Object.entries(DEFAULT_ACTION_KEYS)) {
     actionKeys[action] = keys.slice()
   }
   for (const [action, val] of Object.entries(remap)) {
     if (!(action in ACTIONS)) continue
     if (val === undefined || val === null) continue
-    const keys = Array.isArray(val) ? val.filter((k) => typeof k === 'string') : [val]
+    const keys = Array.isArray(val) ? val.filter((k): k is string => typeof k === 'string') : [val]
     actionKeys[action] = keys // empty array disables
   }
-  const map = new Map()
+  const map = new Map<string, string[]>()
   for (const [action, keys] of Object.entries(actionKeys)) {
     for (const k of keys) {
       const norm = String(k).toLowerCase().replace(/^super[+]/, 'meta+')
       if (!map.has(norm)) map.set(norm, [])
-      map.get(norm).push(action)
+      map.get(norm)!.push(action)
     }
   }
   return map
 }
 
 /** Normalized key id for an event, e.g. 'shift+ctrl+p', 'alt+m', 'enter'. */
-export function keyId(ev) {
-  const mods = []
+export function keyId(ev: KeyEvent): string {
+  const mods: string[] = []
   if (ev.ctrl) mods.push('ctrl')
   if (ev.alt) mods.push('alt')
   if (ev.shift) mods.push('shift')
   if (ev.meta) mods.push('meta')
-  const base = ev.char !== null ? ev.char.toLowerCase() : ev.key
+  const base = ev.char !== null ? ev.char.toLowerCase() : ev.key ?? ''
   return mods.length ? mods.join('+') + '+' + base : base
 }
 
-const CTRL_CHARS = {
+const CTRL_CHARS: Record<string, string> = {
   '\x01': 'a', '\x02': 'b', '\x03': 'c', '\x04': 'd', '\x05': 'e', '\x06': 'f',
   '\x07': 'g', '\x08': 'h', '\x09': 'tab', '\x0a': 'j', '\x0b': 'k', '\x0c': 'l',
   '\x0d': 'enter', '\x0e': 'n', '\x0f': 'o', '\x10': 'p', '\x11': 'q', '\x12': 'r',
@@ -167,35 +179,37 @@ const CTRL_CHARS = {
 }
 
 // kitty functional key codes (CSI <code>; <mods>; <text> u)
-const KITTY_FUNC = {
+const KITTY_FUNC: Record<number, string> = {
   57358: 'home', 57359: 'end', 57360: 'insert', 57361: 'delete',
   57362: 'pageup', 57363: 'pagedown', 57364: 'left', 57365: 'right',
   57366: 'up', 57367: 'down', 13: 'enter', 9: 'tab', 27: 'escape', 127: 'backspace',
 }
-const MODS = { 2: 'shift', 3: 'alt', 4: 'alt shift', 5: 'ctrl', 6: 'ctrl shift', 7: 'ctrl alt', 8: 'ctrl alt shift' }
+const MODS: Record<number, string> = { 2: 'shift', 3: 'alt', 4: 'alt shift', 5: 'ctrl', 6: 'ctrl shift', 7: 'ctrl alt', 8: 'ctrl alt shift' }
 
-function modsOf(n) {
+function modsOf(n: string): string[] {
   const m = MODS[Number(n)]
   return m ? m.split(' ') : []
 }
 
 export class KeyParser {
-  constructor() {
-    this.buf = ''
-  }
-  feed(chunk) {
+  buf = ''
+
+  feed(chunk: string) {
     this.buf += chunk
   }
-  get partialEscape() {
+
+  get partialEscape(): boolean {
     return this.buf === '\x1b' || (this.buf.startsWith('\x1b[') && this.buf.length < 4)
   }
-  dropPartial() {
+
+  dropPartial(): void {
     if (this.buf === '\x1b') this.buf = ''
     else if (this.buf.startsWith('\x1b[') && this.buf.length < 4) this.buf = ''
   }
+
   /** Extract as many events as possible; leaves partial sequences in buf. */
-  poll() {
-    const events = []
+  poll(): KeyEvent[] {
+    const events: KeyEvent[] = []
     for (;;) {
       const ev = this.next()
       if (!ev) break
@@ -203,7 +217,8 @@ export class KeyParser {
     }
     return events
   }
-  next() {
+
+  next(): KeyEvent | null {
     const b = this.buf
     if (!b.length) return null
     const ch = b[0]
@@ -246,7 +261,7 @@ export class KeyParser {
         if (b.length < 3) return null
         const c3 = b[2]
         this.buf = b.slice(3)
-        const names = { A: 'up', B: 'down', C: 'right', D: 'left', H: 'home', F: 'end', P: 'f1', Q: 'f2', R: 'f3', S: 'f4' }
+        const names: Record<string, string> = { A: 'up', B: 'down', C: 'right', D: 'left', H: 'home', F: 'end', P: 'f1', Q: 'f2', R: 'f3', S: 'f4' }
         return { key: names[c3] || 'unknown', char: null, ctrl: false, alt: false, shift: false, meta: false }
       }
       if (c2 === '\x1b') {
@@ -292,14 +307,15 @@ export class KeyParser {
     this.buf = this.buf.slice(i)
     return { key: null, char: text, ctrl: false, alt: false, shift: false, meta: false }
   }
-  csiEvent(param, final) {
+
+  csiEvent(param: string, final: string): KeyEvent | null {
     // kitty CSI-u: <code>; <mods>; <text> u
     if (final === 'u') {
       const parts = param.split(';')
       const code = Number(parts[0])
       const mods = modsOf(parts[1] || '1')
-      let char = null
-      let key = null
+      let char: string | null = null
+      let key: string | null = null
       if (parts[2]) {
         try {
           const text = JSON.parse('"' + parts[2].replace(/"/g, '\\"') + '"')
@@ -343,7 +359,8 @@ export class KeyParser {
     }
     return null
   }
-  keyEvent(name, mods) {
+
+  keyEvent(name: string, mods: string[]): KeyEvent {
     return {
       key: name,
       char: null,
@@ -356,6 +373,6 @@ export class KeyParser {
 }
 
 /** Push the kitty keyboard protocol; returns the request string. */
-export function kittyPushRequest() {
+export function kittyPushRequest(): string {
   return '\x1b[>1;2;3;4;5;6;7u'
 }

@@ -6,7 +6,8 @@
 #
 #     dash          # or: dsh --profile dash
 #
-# Re-running install.sh after editing the plugin re-copies index.js.
+# Re-running install.sh after editing the plugin re-compiles src/*.ts and
+# re-copies the dist/ output.
 set -eu
 
 SRC="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
@@ -81,10 +82,22 @@ cat > "$PROFILE/cordis.patch.yml" <<'EOF'
     defaultPreset: danger-full-access
 EOF
 
+# compile the TypeScript sources (needs a one-time `npm install` in the repo);
+# `sh install.sh --no-build` skips the compile and re-copies the existing dist/
+if [ "${1:-}" != "--no-build" ]; then
+  if [ ! -x "$SRC/node_modules/.bin/tsc" ]; then
+    echo "[dash] TypeScript toolchain missing — run: (cd $SRC && npm install)" >&2
+    exit 1
+  fi
+  "$SRC/node_modules/.bin/tsc" -p "$SRC" || exit 1
+fi
+
 # the plugin package itself (copied, not symlinked, so require()/import of the
 # @deepseek-ai packages resolves through the shared profiles/node_modules)
-mkdir -p "$PROFILE/node_modules/dash-tui"
-cp -f "$SRC/package.json" "$SRC/index.js" "$SRC/keys.js" "$SRC/editor.js" "$SRC/config.js" "$SRC/cordis.patch.yml" "$PROFILE/node_modules/dash-tui/"
+rm -rf "$PROFILE/node_modules/dash-tui"
+mkdir -p "$PROFILE/node_modules/dash-tui/dist"
+cp -f "$SRC/package.json" "$SRC/cordis.patch.yml" "$PROFILE/node_modules/dash-tui/"
+cp -f "$SRC"/dist/*.js "$PROFILE/node_modules/dash-tui/dist/"
 
 # launcher
 cat > "$BIN_DIR/dash" <<EOF

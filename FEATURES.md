@@ -104,8 +104,9 @@
 ## K. 设置与配置（settings.md）
 
 - ✅ ~/.dash/keybindings.yml 键位
-- ✅ ~/.dash/config.yml（theme/modelRoles/activity.frames/startup.quiet；扁平 YAML 读写）
-- ✅ /settings 面板（schema 表驱动：bool 切换/enum 循环，即时生效并持久化）
+- ✅ ~/.dash/config.yml（theme/activity.frames/startup.quiet/notify.turnEnd/doubleEscapeAction/followUpMode/advisor/preset.id/autoResume；扁平点号读写，保存为嵌套 YAML）
+- ✅ /settings 面板（omp SettingsList 语义完全移植：appearance/model/interaction/session 四页签 + 分组侧栏，type-to-search 跨页模糊搜索与 Tab 跳转、Enter/Space 循环取值、3 行描述区、变更标记、Esc 先退搜索再关闭；全部即时生效并持久化）
+- ✅ /preset 会话模式切换（DSH 官方 agent preset：标准/PTC/极简/创造；空白会话立即重建，已产生对话的会话 /new 后生效；选择持久化 preset.id）
 - ➖ 项目级 .dash/config.yml 覆盖（终端单进程场景低价值；全局配置已覆盖）
 
 ## L. 进阶内核特性（文档对照）

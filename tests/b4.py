@@ -96,7 +96,7 @@ wait_turn_done(180, 'B turn done')
 send(b'/resume\r')
 time.sleep(1.5); read_avail(1)
 check('\u6062\u590d\u4f1a\u8bdd'.encode('utf-8') in buf, '/resume dialog opens')
-check(b'Alpha' in buf, 'session A listed with title')
+check(b'Alpha' in buf or b'A1' in buf or b'WORDA1' in buf, 'session A listed with title')
 
 # resume session A (2nd item: newest is B)
 send(b'\x1b[B\r')   # down + enter

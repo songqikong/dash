@@ -2,3 +2,7 @@
 *.sqlite
 *.log
 .DS_Store
+
+# Build output (src/*.ts compiles here)
+dist/
+node_modules/
